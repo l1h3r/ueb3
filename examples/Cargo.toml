@@ -1,0 +1,47 @@
+[package]
+name = "ueb3-examples"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+publish = false
+
+[[example]]
+name = "filter_blocks"
+path = "examples/filter/blocks.rs"
+
+[[example]]
+name = "filter_logs"
+path = "examples/filter/logs.rs"
+
+[[example]]
+name = "filter_transactions"
+path = "examples/filter/transactions.rs"
+
+[[example]]
+name = "namespace_eth"
+path = "examples/namespace/eth.rs"
+
+[[example]]
+name = "namespace_net"
+path = "examples/namespace/net.rs"
+
+[[example]]
+name = "namespace_rpc"
+path = "examples/namespace/rpc.rs"
+
+[[example]]
+name = "namespace_web3"
+path = "examples/namespace/web3.rs"
+
+[dependencies]
+smol = { version = "2.0", default-features = false }
+ueb3 = { version = "=0.1", path = "..", default-features = false, features = ["streams", "ureq"] }
+
+[features]
+default = []
+
+node-local = []
+
+node-besu = []
+node-nethermind = []

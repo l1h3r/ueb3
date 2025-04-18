@@ -1,0 +1,24 @@
+[package]
+name = "ueb3-api"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+ueb3-rpc = { version = "=0.1.0", path = "../ueb3-rpc", default-features = false }
+ueb3-types = { version = "=0.1.0", path = "../ueb3-types", default-features = false }
+ueb3-utils = { version = "=0.1.0", path = "../ueb3-utils", default-features = false }
+
+# Stream Support
+async-stream = { version = "0.3", default-features = false, optional = true }
+futures-core = { version = "0.3", default-features = false, features = ["std"], optional = true }
+futures-timer = { version = "3.0", default-features = false, optional = true }
+
+[features]
+default = []
+streams = ["async-stream", "futures-core", "futures-timer"]

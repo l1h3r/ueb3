@@ -1,0 +1,15 @@
+[package]
+name = "ueb3-rpc"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+ueb3-serde = { version = "=0.1.0", path = "../ueb3-serde", default-features = false }
+ueb3-utils = { version = "=0.1.0", path = "../ueb3-utils", default-features = false }
