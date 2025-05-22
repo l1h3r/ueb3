@@ -5,18 +5,13 @@ use const_hex::decode_to_array;
 use const_hex::decode_to_slice;
 use const_hex::encode_to_slice;
 use const_hex::encode_to_slice_upper;
-use serde::Deserializer;
-use serde::Serializer;
-use serde::de::Error;
-use serde::de::Visitor;
 use std::borrow::Cow;
 use std::error::Error as StdError;
 use std::fmt::Display;
+use std::fmt::Error as FmtError;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
-use std::marker::PhantomData;
 use std::rc::Rc;
-use std::str;
 use std::sync::Arc;
 
 // -----------------------------------------------------------------------------
@@ -64,6 +59,51 @@ impl From<HexError> for FromHexError {
       HexError::OddLength => Self::UnevenBytes,
       HexError::InvalidStringLength => Self::InvalidSize,
     }
+  }
+}
+
+// -----------------------------------------------------------------------------
+//  Hex Format Trait
+// -----------------------------------------------------------------------------
+
+/// Provides formatting utilities to display hex-encoded data.
+pub trait FormatHex: AsRef<[u8]> {
+  /// The buffer type used to write hex-encoded data.
+  type Buffer: AsMut<[u8]>;
+
+  /// Creates a new `Buffer` with enough space to store `length` bytes.
+  fn buffer(length: usize) -> Self::Buffer;
+
+  /// Formats `self` as a lowercase hex string written to `f`.
+  #[inline]
+  fn fmt_lower(&self, f: &mut Formatter<'_>) -> FmtResult {
+    let data: &[u8] = self.as_ref();
+    let size: usize = data.len() * 2;
+
+    let mut buffer: Self::Buffer = Self::buffer(size);
+
+    let Ok(value) = encode_into_lower(data, buffer.as_mut()) else {
+      return Err(FmtError);
+    };
+
+    f.write_str("0x")?;
+    f.write_str(value)
+  }
+
+  /// Formats `self` as an uppercase hex string written to `f`.
+  #[inline]
+  fn fmt_upper(&self, f: &mut Formatter<'_>) -> FmtResult {
+    let data: &[u8] = self.as_ref();
+    let size: usize = data.len() * 2;
+
+    let mut buffer: Self::Buffer = Self::buffer(size);
+
+    let Ok(value) = encode_into_upper(data, buffer.as_mut()) else {
+      return Err(FmtError);
+    };
+
+    f.write_str("0x")?;
+    f.write_str(value)
   }
 }
 
@@ -163,77 +203,6 @@ impl<const N: usize> FromHex for [u8; N] {
   #[inline]
   fn from_slice(input: &[u8]) -> Result<Self, Self::Error> {
     decode_to_array(input).map_err(Into::into)
-  }
-}
-
-// -----------------------------------------------------------------------------
-//  Serde Helpers
-// -----------------------------------------------------------------------------
-
-/// Serializes `T` as a hex-encoded string.
-///
-/// Note: When the serializer is **not** [human-readable],
-///       this will serialize `T` as a slice of raw bytes.
-///
-/// [human-readable]: Serializer::is_human_readable
-#[inline]
-pub fn serialize<T, S, const PREFIX: bool>(data: &T, serializer: S) -> Result<S::Ok, S::Error>
-where
-  S: Serializer,
-  T: AsRef<[u8]> + ?Sized,
-{
-  if serializer.is_human_readable() {
-    serializer.serialize_str(encode_str::<T, PREFIX>(data).as_str())
-  } else {
-    serializer.serialize_bytes(data.as_ref())
-  }
-}
-
-/// Deserializes `T` from a hex-encoded string or bytes.
-///
-/// Note: When the deserializer is **not** [human-readable], this will
-///       hint that the deserializer should expect a slice of raw bytes.
-///
-/// [human-readable]: Deserializer::is_human_readable
-#[inline]
-pub fn deserialize<'de, D, T>(deserializer: D) -> Result<T, D::Error>
-where
-  D: Deserializer<'de>,
-  for<'a> T: FromHex + TryFrom<&'a [u8]>,
-  for<'a> <T as TryFrom<&'a [u8]>>::Error: Display,
-{
-  struct __Visitor<T>(PhantomData<T>);
-
-  impl<T> Visitor<'_> for __Visitor<T>
-  where
-    for<'a> T: FromHex + TryFrom<&'a [u8]>,
-    for<'a> <T as TryFrom<&'a [u8]>>::Error: Display,
-  {
-    type Value = T;
-
-    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-      f.write_str("a hex-encoded string or bytes")
-    }
-
-    fn visit_bytes<E>(self, data: &[u8]) -> Result<Self::Value, E>
-    where
-      E: Error,
-    {
-      T::try_from(data).map_err(E::custom)
-    }
-
-    fn visit_str<E>(self, data: &str) -> Result<Self::Value, E>
-    where
-      E: Error,
-    {
-      FromHex::from_str(data).map_err(E::custom)
-    }
-  }
-
-  if deserializer.is_human_readable() {
-    deserializer.deserialize_str(__Visitor(PhantomData))
-  } else {
-    deserializer.deserialize_bytes(__Visitor(PhantomData))
   }
 }
 

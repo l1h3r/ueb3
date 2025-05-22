@@ -76,13 +76,12 @@ impl Debug for TransactionLog {
 // -----------------------------------------------------------------------------
 
 mod serde_topics {
-  use serde::Deserialize;
   use serde::Deserializer;
-  use serde::Serialize;
   use serde::Serializer;
   use serde::de::Error as _;
   use serde::de::Expected;
   use serde::ser::Error as _;
+  use ueb3_serde::nullable::sequence;
 
   use crate::eth::H256;
 
@@ -102,8 +101,7 @@ mod serde_topics {
     D: Deserializer<'de>,
   {
     // Note: Some nodes return `"topics": null`
-    let value: Option<Vec<H256>> = Deserialize::deserialize(deserializer)?;
-    let value: Vec<H256> = value.unwrap_or_default();
+    let value: Vec<H256> = sequence::deserialize(deserializer)?;
 
     if value.len() > 4 {
       return Err(D::Error::invalid_length(value.len(), &EXPECTED));
@@ -121,6 +119,131 @@ mod serde_topics {
       return Err(invalid_length::<S>(value.len(), &EXPECTED));
     }
 
-    Serialize::serialize(value, serializer)
+    sequence::serialize(value, serializer)
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_test::Configure as _;
+  use serde_test::Token;
+  use serde_test::assert_tokens;
+
+  use crate::rpc::TransactionLog;
+
+  #[test]
+  fn test_serde() {
+    const TXN_HASH_A: &str = "0x66e7a140c8fa27fe98fde923defea7562c3ca2d6bb89798aabec65782c08f63d";
+    const TXN_HASH_B: &str = "0xdb17aa1c2ce609132f599155d384c0bc5334c988a6c368056d7e167e23eee058";
+
+    const BLOCK_HASH_A: &str = "0xfc139f5e2edee9e9c888d8df9a2d2226133a9bd87c88ccbd9c930d3d4c9f9ef5";
+    const BLOCK_HASH_B: &str = "0x98b0ec0f9fea0018a644959accbe69cd046a8582e89402e1ab0ada91cad644ed";
+
+    const DATA_A: &str = "0x0000000000000000000000000000000000000000000000000000000000000004";
+    const DATA_B: &str = "0x0000000000000000000000000000000000000000000000000000000000000007";
+
+    const ADDRESS: &str = "0x42699a7612a82f1d9c36148af9c77354759b210b";
+    const TOPIC_0: &str = "0x04474795f5b996ff80cb47c148d4c5ccdbe09ef27551820caa9c2f8ed149cce3";
+
+    let a: TransactionLog = TransactionLog {
+      log_index: Some(0x0),
+      transaction_hash: Some(TXN_HASH_A.parse().unwrap()),
+      transaction_index: Some(0x0),
+      block_hash: Some(BLOCK_HASH_A.parse().unwrap()),
+      block_number: Some(0x233),
+      address: ADDRESS.parse().unwrap(),
+      removed: false,
+      topics: vec![TOPIC_0.parse().unwrap()],
+      data: DATA_A.parse().unwrap(),
+      block_timestamp: None,
+    };
+
+    let b: TransactionLog = TransactionLog {
+      log_index: Some(0x0),
+      transaction_hash: Some(TXN_HASH_B.parse().unwrap()),
+      transaction_index: Some(0x0),
+      block_hash: Some(BLOCK_HASH_B.parse().unwrap()),
+      block_number: Some(0x238),
+      address: ADDRESS.parse().unwrap(),
+      removed: false,
+      topics: vec![TOPIC_0.parse().unwrap()],
+      data: DATA_B.parse().unwrap(),
+      block_timestamp: None,
+    };
+
+    let tokens_a: &[Token] = &[
+      Token::Struct {
+        name: "TransactionLog",
+        len: 9,
+      },
+      Token::Str("logIndex"),
+      Token::Some,
+      Token::Str("0x0"),
+      Token::Str("transactionHash"),
+      Token::Some,
+      Token::Str(TXN_HASH_A),
+      Token::Str("transactionIndex"),
+      Token::Some,
+      Token::Str("0x0"),
+      Token::Str("blockHash"),
+      Token::Some,
+      Token::Str(BLOCK_HASH_A),
+      Token::Str("blockNumber"),
+      Token::Some,
+      Token::Str("0x233"),
+      Token::Str("address"),
+      Token::Str(ADDRESS),
+      Token::Str("removed"),
+      Token::Bool(false),
+      Token::Str("topics"),
+      Token::Some,
+      Token::Seq { len: Some(1) },
+      Token::Str(TOPIC_0),
+      Token::SeqEnd,
+      Token::Str("data"),
+      Token::Str(DATA_A),
+      Token::StructEnd,
+    ];
+
+    let tokens_b: &[Token] = &[
+      Token::Struct {
+        name: "TransactionLog",
+        len: 9,
+      },
+      Token::Str("logIndex"),
+      Token::Some,
+      Token::Str("0x0"),
+      Token::Str("transactionHash"),
+      Token::Some,
+      Token::Str(TXN_HASH_B),
+      Token::Str("transactionIndex"),
+      Token::Some,
+      Token::Str("0x0"),
+      Token::Str("blockHash"),
+      Token::Some,
+      Token::Str(BLOCK_HASH_B),
+      Token::Str("blockNumber"),
+      Token::Some,
+      Token::Str("0x238"),
+      Token::Str("address"),
+      Token::Str(ADDRESS),
+      Token::Str("removed"),
+      Token::Bool(false),
+      Token::Str("topics"),
+      Token::Some,
+      Token::Seq { len: Some(1) },
+      Token::Str(TOPIC_0),
+      Token::SeqEnd,
+      Token::Str("data"),
+      Token::Str(DATA_B),
+      Token::StructEnd,
+    ];
+
+    assert_tokens(&a.readable(), tokens_a);
+    assert_tokens(&b.readable(), tokens_b);
   }
 }

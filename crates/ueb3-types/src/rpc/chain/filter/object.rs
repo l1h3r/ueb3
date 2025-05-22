@@ -466,6 +466,10 @@ impl Serialize for Filter {
   }
 }
 
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
 #[cfg(test)]
 mod tests {
   use serde_test::Configure as _;
@@ -476,71 +480,66 @@ mod tests {
   use crate::eth::H256;
   use crate::rpc::Filter;
 
-  const TOKENS_A: &[Token] = &[
-    Token::Struct {
-      name: "Filter",
-      len: 0,
-    },
-    Token::StructEnd,
-  ];
-
-  const TOKENS_B: &[Token] = &[
-    Token::Struct {
-      name: "Filter",
-      len: 1,
-    },
-    Token::Str("blockHash"),
-    Token::Str("0x0000000000000000000000000000000000000000000000000000000000000000"),
-    Token::StructEnd,
-  ];
-
-  const TOKENS_C: &[Token] = &[
-    Token::Struct {
-      name: "Filter",
-      len: 1,
-    },
-    Token::Str("address"),
-    Token::Str("0x0000000000000000000000000000000000000000"),
-    Token::StructEnd,
-  ];
-
-  const TOKENS_D: &[Token] = &[
-    Token::Struct {
-      name: "Filter",
-      len: 2,
-    },
-    Token::Str("address"),
-    Token::Str("0x0000000000000000000000000000000000000000"),
-    Token::Str("topics"),
-    Token::Seq { len: Some(3) },
-    Token::Some,
-    Token::Str("0xb608c74283f334e1f047dbbf1daa2407d41d4689aca67c422796f936acce16b7"),
-    Token::None,
-    Token::Some,
-    Token::Str("0x0000000000000000000000000000000000000000000000000000000000000000"),
-    Token::SeqEnd,
-    Token::StructEnd,
-  ];
-
   #[test]
   fn test_serde() {
-    let filter: Filter = Filter::new();
+    let a: Filter = Filter::new();
+    let b: Filter = Filter::new().with_block(H256::NULL);
+    let c: Filter = Filter::new().with_address(Address::NULL);
 
-    assert_ser_tokens(&filter, TOKENS_A);
-
-    let filter: Filter = Filter::new().with_block(H256::NULL);
-
-    assert_ser_tokens(&filter.readable(), TOKENS_B);
-
-    let filter: Filter = Filter::new().with_address(Address::NULL);
-
-    assert_ser_tokens(&filter.readable(), TOKENS_C);
-
-    let filter: Filter = Filter::new()
+    let d: Filter = Filter::new()
       .with_address(Address::NULL)
       .with_event("Foo")
       .with_topic2(H256::NULL);
 
-    assert_ser_tokens(&filter.readable(), TOKENS_D);
+    let tokens_a: &[Token] = &[
+      Token::Struct {
+        name: "Filter",
+        len: 0,
+      },
+      Token::StructEnd,
+    ];
+
+    let tokens_b: &[Token] = &[
+      Token::Struct {
+        name: "Filter",
+        len: 1,
+      },
+      Token::Str("blockHash"),
+      Token::Str("0x0000000000000000000000000000000000000000000000000000000000000000"),
+      Token::StructEnd,
+    ];
+
+    let tokens_c: &[Token] = &[
+      Token::Struct {
+        name: "Filter",
+        len: 1,
+      },
+      Token::Str("address"),
+      Token::Str("0x0000000000000000000000000000000000000000"),
+      Token::StructEnd,
+    ];
+
+    let tokens_d: &[Token] = &[
+      Token::Struct {
+        name: "Filter",
+        len: 2,
+      },
+      Token::Str("address"),
+      Token::Str("0x0000000000000000000000000000000000000000"),
+      Token::Str("topics"),
+      Token::Seq { len: Some(3) },
+      Token::Some,
+      Token::Str("0xb608c74283f334e1f047dbbf1daa2407d41d4689aca67c422796f936acce16b7"),
+      Token::None,
+      Token::Some,
+      Token::Str("0x0000000000000000000000000000000000000000000000000000000000000000"),
+      Token::SeqEnd,
+      Token::StructEnd,
+    ];
+
+    assert_ser_tokens(&a.readable(), tokens_a);
+    assert_ser_tokens(&b.readable(), tokens_b);
+    assert_ser_tokens(&c.readable(), tokens_c);
+    assert_ser_tokens(&d.readable(), tokens_d);
   }
 }

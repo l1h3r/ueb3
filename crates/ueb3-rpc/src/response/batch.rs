@@ -47,7 +47,7 @@ impl ResponseBatch {
   ///
   /// This may return `None` if the batch is a value variant.
   #[inline]
-  pub fn as_batch(&self) -> Option<&[BoxResponse]> {
+  pub const fn as_batch(&self) -> Option<&[BoxResponse]> {
     match self {
       Self::Batch(inner) => Some(inner.as_slice()),
       Self::Value(_) => None,
@@ -67,7 +67,7 @@ impl ResponseBatch {
 
   /// Returns `self` as a slice of response objects.
   #[inline]
-  pub fn as_slice(&self) -> &[BoxResponse] {
+  pub const fn as_slice(&self) -> &[BoxResponse] {
     match self {
       Self::Batch(inner) => inner.as_slice(),
       Self::Value(inner) => slice::from_ref(inner),
@@ -76,7 +76,7 @@ impl ResponseBatch {
 
   /// Returns a mutable reference to the underlying slice of responses.
   #[inline]
-  pub fn as_mut_slice(&mut self) -> &mut [BoxResponse] {
+  pub const fn as_mut_slice(&mut self) -> &mut [BoxResponse] {
     match self {
       Self::Batch(inner) => inner.as_mut_slice(),
       Self::Value(inner) => slice::from_mut(inner),
@@ -144,6 +144,13 @@ impl From<BoxResponse> for ResponseBatch {
   #[inline]
   fn from(other: BoxResponse) -> Self {
     Self::Value(other)
+  }
+}
+
+impl<const N: usize> From<[BoxResponse; N]> for ResponseBatch {
+  #[inline]
+  fn from(other: [BoxResponse; N]) -> Self {
+    Self::Batch(other.into())
   }
 }
 
@@ -242,5 +249,107 @@ impl Serialize for ResponseBatch {
       Self::Batch(inner) => inner.serialize(serializer),
       Self::Value(inner) => inner.serialize(serializer),
     }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_json::value::RawValue;
+  use serde_test::Token;
+  use serde_test::assert_ser_tokens;
+  use ueb3_utils::traits::Encode as _;
+
+  use crate::request::RequestId;
+  use crate::response::BoxResponse;
+  use crate::response::ResponseBatch;
+  use crate::response::ResponseSuccess;
+
+  type Params = (&'static str, &'static str, &'static str);
+
+  #[test]
+  fn test_serde() {
+    let params: Params = ("0x0", "0x00000000", "latest");
+    let params: Box<RawValue> = params.encode_raw_value().unwrap();
+
+    let data_1: BoxResponse = {
+      let request: RequestId = RequestId::new(1);
+      let content: Box<RawValue> = RawValue::NULL.to_owned();
+      BoxResponse::Success(ResponseSuccess::new(request, content))
+    };
+
+    let data_2: BoxResponse = {
+      let request: RequestId = RequestId::new(1);
+      let content: Box<RawValue> = params;
+      BoxResponse::Success(ResponseSuccess::new(request, content))
+    };
+
+    let a: ResponseBatch = ResponseBatch::from(data_1.clone());
+    let b: ResponseBatch = ResponseBatch::from([data_1, data_2]);
+
+    let tokens_a: &[Token] = &[
+      Token::Struct {
+        name: "ResponseSuccess",
+        len: 3,
+      },
+      Token::Str("jsonrpc"),
+      Token::Str("2.0"),
+      Token::Str("id"),
+      Token::U64(1),
+      Token::Str("result"),
+      Token::Struct {
+        name: "$serde_json::private::RawValue",
+        len: 1,
+      },
+      Token::Str("$serde_json::private::RawValue"),
+      Token::BorrowedStr("null"),
+      Token::StructEnd,
+      Token::StructEnd,
+    ];
+
+    let tokens_b: &[Token] = &[
+      Token::Seq { len: Some(2) },
+      Token::Struct {
+        name: "ResponseSuccess",
+        len: 3,
+      },
+      Token::Str("jsonrpc"),
+      Token::Str("2.0"),
+      Token::Str("id"),
+      Token::U64(1),
+      Token::Str("result"),
+      Token::Struct {
+        name: "$serde_json::private::RawValue",
+        len: 1,
+      },
+      Token::Str("$serde_json::private::RawValue"),
+      Token::BorrowedStr("null"),
+      Token::StructEnd,
+      Token::StructEnd,
+      Token::Struct {
+        name: "ResponseSuccess",
+        len: 3,
+      },
+      Token::Str("jsonrpc"),
+      Token::Str("2.0"),
+      Token::Str("id"),
+      Token::U64(1),
+      Token::Str("result"),
+      Token::Struct {
+        name: "$serde_json::private::RawValue",
+        len: 1,
+      },
+      Token::Str("$serde_json::private::RawValue"),
+      Token::Str(r#"["0x0","0x00000000","latest"]"#),
+      Token::StructEnd,
+      Token::StructEnd,
+      Token::SeqEnd,
+    ];
+
+    assert_ser_tokens(&a, tokens_a);
+    assert_ser_tokens(&b, tokens_b);
   }
 }

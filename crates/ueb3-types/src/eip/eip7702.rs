@@ -40,3 +40,61 @@ define_list! {
   #[copy]
   AuthorizationList = [Authorization]
 }
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_test::Configure as _;
+  use serde_test::Token;
+  use serde_test::assert_tokens;
+
+  use crate::eip::eip7702::Authorization;
+  use crate::eip::eip7702::AuthorizationList;
+  use crate::eth::U256;
+  use crate::eth::YParity;
+
+  #[test]
+  fn test_serde() {
+    const R: &str = "0x28da8576c6e73b424e8cf57e46c683fae141ecbb7150e8ede3b673e82a6f90a6";
+    const S: &str = "0x1ca5eb17d037909806a3c5cca595633369cdcb2f59b3916171e85782c01a296d";
+
+    let a: AuthorizationList = AuthorizationList::from([Authorization {
+      chain_id: U256::from(0x1),
+      address: Default::default(),
+      nonce: 0x3,
+      y_parity: YParity::Odd,
+      r: R.parse().unwrap(),
+      s: S.parse().unwrap(),
+    }]);
+
+    let tokens_a: &[Token] = &[
+      Token::Seq { len: Some(1) },
+      Token::Struct {
+        name: "Authorization",
+        len: 6,
+      },
+      Token::Str("chainId"),
+      Token::Str("0x1"),
+      Token::Str("address"),
+      Token::Str("0x0000000000000000000000000000000000000000"),
+      Token::Str("nonce"),
+      Token::Str("0x3"),
+      Token::Str("yParity"),
+      Token::UnitVariant {
+        name: "YParity",
+        variant: "0x1",
+      },
+      Token::Str("r"),
+      Token::Str(R),
+      Token::Str("s"),
+      Token::Str(S),
+      Token::StructEnd,
+      Token::SeqEnd,
+    ];
+
+    assert_tokens(&a.readable(), tokens_a);
+  }
+}

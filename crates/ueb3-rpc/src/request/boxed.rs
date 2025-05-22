@@ -102,3 +102,68 @@ impl Serialize for BoxRequest {
     state.end()
   }
 }
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_json::value::RawValue;
+  use serde_test::Token;
+  use serde_test::assert_ser_tokens;
+  use ueb3_utils::traits::Encode as _;
+
+  use crate::request::BoxRequest;
+  use crate::request::RequestId;
+
+  type Params = (&'static str, &'static str, &'static str);
+
+  #[test]
+  fn test_serde() {
+    let params: Params = ("0x0", "0x00000000", "latest");
+    let params: Box<RawValue> = params.encode_raw_value().unwrap();
+
+    let a: BoxRequest = BoxRequest::new("rpc_modules", RequestId::new(1), None);
+    let b: BoxRequest = BoxRequest::new("rpc_modules", RequestId::new(2), Some(params));
+
+    let tokens_a: &[Token] = &[
+      Token::Struct {
+        name: "BoxRequest",
+        len: 3,
+      },
+      Token::Str("jsonrpc"),
+      Token::Str("2.0"),
+      Token::Str("method"),
+      Token::Str("rpc_modules"),
+      Token::Str("id"),
+      Token::U64(1),
+      Token::StructEnd,
+    ];
+
+    let tokens_b: &[Token] = &[
+      Token::Struct {
+        name: "BoxRequest",
+        len: 4,
+      },
+      Token::Str("jsonrpc"),
+      Token::Str("2.0"),
+      Token::Str("method"),
+      Token::Str("rpc_modules"),
+      Token::Str("id"),
+      Token::U64(2),
+      Token::Str("params"),
+      Token::Struct {
+        name: "$serde_json::private::RawValue",
+        len: 1,
+      },
+      Token::Str("$serde_json::private::RawValue"),
+      Token::Str(r#"["0x0","0x00000000","latest"]"#),
+      Token::StructEnd,
+      Token::StructEnd,
+    ];
+
+    assert_ser_tokens(&a, tokens_a);
+    assert_ser_tokens(&b, tokens_b);
+  }
+}

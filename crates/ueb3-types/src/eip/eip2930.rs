@@ -64,3 +64,76 @@ impl Debug for AccessListResult {
       .finish()
   }
 }
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_test::Configure as _;
+  use serde_test::Token;
+  use serde_test::assert_tokens;
+
+  use crate::eip::eip2930::Access;
+  use crate::eip::eip2930::AccessList;
+  use crate::eip::eip2930::AccessListResult;
+  use crate::eth::U256;
+
+  #[test]
+  fn test_serde() {
+    const ADDRESS: &str = "0xa02457e5dfd32bda5fc7e1f1b008aa5979568150";
+    const STORAGE: &str = "0x0000000000000000000000000000000000000000000000000000000000000081";
+
+    let a: AccessListResult = AccessListResult::default();
+
+    let b: AccessListResult = AccessListResult {
+      access_list: AccessList::from([Access {
+        address: ADDRESS.parse().unwrap(),
+        storage_keys: vec![STORAGE.parse().unwrap()],
+      }]),
+      gas_used: U256::from(0x125f8),
+      error: None,
+    };
+
+    let tokens_a: &[Token] = &[
+      Token::Struct {
+        name: "AccessListResult",
+        len: 2,
+      },
+      Token::Str("accessList"),
+      Token::Seq { len: Some(0) },
+      Token::SeqEnd,
+      Token::Str("gasUsed"),
+      Token::Str("0x0"),
+      Token::StructEnd,
+    ];
+
+    let tokens_b: &[Token] = &[
+      Token::Struct {
+        name: "AccessListResult",
+        len: 2,
+      },
+      Token::Str("accessList"),
+      Token::Seq { len: Some(1) },
+      Token::Struct {
+        name: "Access",
+        len: 2,
+      },
+      Token::Str("address"),
+      Token::Str(ADDRESS),
+      Token::Str("storageKeys"),
+      Token::Seq { len: Some(1) },
+      Token::Str(STORAGE),
+      Token::SeqEnd,
+      Token::StructEnd,
+      Token::SeqEnd,
+      Token::Str("gasUsed"),
+      Token::Str("0x125f8"),
+      Token::StructEnd,
+    ];
+
+    assert_tokens(&a.readable(), tokens_a);
+    assert_tokens(&b.readable(), tokens_b);
+  }
+}

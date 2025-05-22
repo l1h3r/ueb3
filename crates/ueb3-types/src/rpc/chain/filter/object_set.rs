@@ -211,3 +211,37 @@ where
     }
   }
 }
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_test::Token;
+  use serde_test::assert_ser_tokens;
+
+  use crate::rpc::FilterSet;
+
+  #[test]
+  fn test_serde() {
+    let a: FilterSet<u64> = FilterSet::new();
+    let b: FilterSet<u64> = FilterSet::from(123);
+    let c: FilterSet<u64> = FilterSet::from([1, 2, 3]);
+
+    let tokens_a: &[Token] = &[Token::None];
+    let tokens_b: &[Token] = &[Token::U64(123)];
+
+    let tokens_c: &[Token] = &[
+      Token::Seq { len: Some(3) },
+      Token::U64(1),
+      Token::U64(2),
+      Token::U64(3),
+      Token::SeqEnd,
+    ];
+
+    assert_ser_tokens(&a, tokens_a);
+    assert_ser_tokens(&b, tokens_b);
+    assert_ser_tokens(&c, tokens_c);
+  }
+}

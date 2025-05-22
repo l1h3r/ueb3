@@ -44,7 +44,7 @@ impl Version {
 
       data.push(PREFIX);
       data.push(Version::V00 as u8);
-      data.extend_from_slice(address);
+      data.extend_from_slice(address.as_ref());
       data.extend_from_slice(input);
       data
     }
@@ -101,4 +101,39 @@ where
   T: AsRef<Slice> + ?Sized,
 {
   keccak256(Version::new_v45(input).as_slice())
+}
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_test::Configure as _;
+  use serde_test::Token;
+  use serde_test::assert_tokens;
+
+  use crate::eip::eip191::hash_0x45;
+
+  #[test]
+  #[ignore]
+  fn test_serde_v00() {
+    unimplemented!()
+  }
+
+  #[test]
+  #[ignore]
+  fn test_serde_v01() {
+    unimplemented!()
+  }
+
+  #[test]
+  fn test_serde_v45() {
+    assert_tokens(
+      &hash_0x45("Hello World").readable(),
+      &[Token::Str(
+        "0xa1de988600a42c4b4ab089b619297c17d53cffae5d5120d82d8a92d0bb3b78f2",
+      )],
+    );
+  }
 }

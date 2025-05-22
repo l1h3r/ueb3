@@ -19,6 +19,10 @@ macro_rules! define_unit {
       }
     }
 
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::fmt::{Debug/Display}
+    // -------------------------------------------------------------------------
+
     impl ::core::fmt::Debug for $name {
       #[inline]
       fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -32,6 +36,30 @@ macro_rules! define_unit {
         write!(f, "{} {}", self.0, stringify!($name).to_lowercase())
       }
     }
+
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::ops::Deref/DerefMut
+    // -------------------------------------------------------------------------
+
+    impl ::core::ops::Deref for $name {
+      type Target = $crate::eth::U256;
+
+      #[inline]
+      fn deref(&self) -> &Self::Target {
+        &self.0
+      }
+    }
+
+    impl ::core::ops::DerefMut for $name {
+      #[inline]
+      fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::convert::From (Self <-> U256)
+    // -------------------------------------------------------------------------
 
     impl From<$crate::eth::U256> for $name {
       #[inline]
@@ -47,6 +75,10 @@ macro_rules! define_unit {
       }
     }
 
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::str::FromStr
+    // -------------------------------------------------------------------------
+
     impl ::core::str::FromStr for $name {
       type Err = ::ueb3_utils::base16::FromHexError;
 
@@ -56,14 +88,44 @@ macro_rules! define_unit {
       }
     }
 
+    // -------------------------------------------------------------------------
+    // Implementations - Quantity
+    // -------------------------------------------------------------------------
+
+    impl ::ueb3_utils::traits::Quantity for $name {
+      type Bytes = <$crate::eth::U256 as ::ueb3_utils::traits::Quantity>::Bytes;
+      type Hexed = <$crate::eth::U256 as ::ueb3_utils::traits::Quantity>::Hexed;
+
+      const BYTES: Self::Bytes = <$crate::eth::U256 as ::ueb3_utils::traits::Quantity>::BYTES;
+      const HEXED: Self::Hexed = <$crate::eth::U256 as ::ueb3_utils::traits::Quantity>::HEXED;
+
+      #[inline]
+      fn from_be_bytes(bytes: Self::Bytes) -> Self {
+        Self(::ueb3_utils::traits::Quantity::from_be_bytes(bytes))
+      }
+
+      #[inline]
+      fn to_be_bytes(self) -> Self::Bytes {
+        ::ueb3_utils::traits::Quantity::to_be_bytes(self.0)
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Implementations - Base16 Encoding
+    // -------------------------------------------------------------------------
+
     impl ::ueb3_utils::base16::FromHex for $name {
       type Error = ::ueb3_utils::base16::FromHexError;
 
       #[inline]
       fn from_slice(input: &[u8]) -> Result<Self, Self::Error> {
-        ::ueb3_utils::base16::FromHex::from_slice(input).map(Self::from_u256)
+        ::ueb3_utils::traits::Quantity::from_hex(input)
       }
     }
+
+    // -------------------------------------------------------------------------
+    // Implementations - Serde
+    // -------------------------------------------------------------------------
 
     impl<'de> ::serde::Deserialize<'de> for $name {
       #[inline]
@@ -71,7 +133,7 @@ macro_rules! define_unit {
       where
         D: ::serde::Deserializer<'de>,
       {
-        ::serde::Deserialize::deserialize(deserializer).map(Self::from_u256)
+        ::ueb3_utils::traits::Quantity::deserialize(deserializer)
       }
     }
 
@@ -81,7 +143,7 @@ macro_rules! define_unit {
       where
         S: ::serde::Serializer,
       {
-        ::serde::Serialize::serialize(&self.0, serializer)
+        ::ueb3_utils::traits::Quantity::serialize(self, serializer)
       }
     }
   };

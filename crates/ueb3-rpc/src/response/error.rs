@@ -17,7 +17,7 @@ use ueb3_utils::traits::OptionExt as _;
 // -----------------------------------------------------------------------------
 
 /// A JSON-RPC 2.0 error object.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Hash, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ResponseError<T> {
   code: i64,
@@ -28,44 +28,58 @@ pub struct ResponseError<T> {
 
 impl<T> ResponseError<T> {
   /// A pre-defined JSON-RPC 2.0 error: `Invalid JSON was received by the server`.
-  pub const PARSE_ERROR: Self = Self::new_const(-32700, "Parse error");
+  pub const PARSE_ERROR: Self = Self::new_const(-32700, "Parse error", None);
 
   /// A pre-defined JSON-RPC 2.0 error: `The JSON sent is not a valid Request object`.
-  pub const INVALID_REQUEST: Self = Self::new_const(-32600, "Invalid request");
+  pub const INVALID_REQUEST: Self = Self::new_const(-32600, "Invalid request", None);
 
   /// A pre-defined JSON-RPC 2.0 error: `The method does not exist / is not available`.
-  pub const METHOD_NOT_FOUND: Self = Self::new_const(-32601, "Method not found");
+  pub const METHOD_NOT_FOUND: Self = Self::new_const(-32601, "Method not found", None);
 
   /// A pre-defined JSON-RPC 2.0 error: `Invalid method parameter(s)`.
-  pub const INVALID_PARAMS: Self = Self::new_const(-32602, "Invalid params");
+  pub const INVALID_PARAMS: Self = Self::new_const(-32602, "Invalid params", None);
 
   /// A pre-defined JSON-RPC 2.0 error: `Internal JSON-RPC error`.
-  pub const INTERNAL_ERROR: Self = Self::new_const(-32603, "Internal error");
+  pub const INTERNAL_ERROR: Self = Self::new_const(-32603, "Internal error", None);
 
   /// A pre-defined Ethereum JSON-RPC error: `Generic client error while processing request.`
-  pub const SERVER_ERROR: Self = Self::new_const(-32000, "Server error");
+  pub const SERVER_ERROR: Self = Self::new_const(-32000, "Server error", None);
 
   /// A pre-defined Ethereum JSON-RPC error: `Payload does not exist / is not available`.
-  pub const UNKNOWN_PAYLOAD: Self = Self::new_const(-38001, "Unknown payload");
+  pub const UNKNOWN_PAYLOAD: Self = Self::new_const(-38001, "Unknown payload", None);
 
   /// A pre-defined Ethereum JSON-RPC error: `Forkchoice state is invalid / inconsistent`.
-  pub const INVALID_FORKCHOICE: Self = Self::new_const(-38002, "Invalid forkchoice state");
+  pub const INVALID_FORKCHOICE: Self = Self::new_const(-38002, "Invalid forkchoice state", None);
 
   /// A pre-defined Ethereum JSON-RPC error: `Payload attributes are invalid / inconsistent`.
-  pub const INVALID_PAYLOAD: Self = Self::new_const(-38003, "Invalid payload attributes");
+  pub const INVALID_PAYLOAD: Self = Self::new_const(-38003, "Invalid payload attributes", None);
 
   /// A pre-defined Ethereum JSON-RPC error: `Number of requested entities is too large`.
-  pub const REQUEST_TOO_LARGE: Self = Self::new_const(-38004, "Too large request");
+  pub const REQUEST_TOO_LARGE: Self = Self::new_const(-38004, "Too large request", None);
 
   /// A pre-defined Ethereum JSON-RPC error: `Payload belongs to a fork that is not supported`.
-  pub const UNSUPPORTED_FORK: Self = Self::new_const(-38005, "Unsupported fork");
+  pub const UNSUPPORTED_FORK: Self = Self::new_const(-38005, "Unsupported fork", None);
 
+  /// Creates a new `ResponseError` from a constant message.
   #[inline]
-  const fn new_const(code: i64, info: &'static str) -> Self {
+  pub const fn new_const(code: i64, info: &'static str, data: Option<T>) -> Self {
     Self {
       code,
       info: Cow::Borrowed(info),
-      data: None,
+      data,
+    }
+  }
+
+  /// Creates a new `ResponseError`.
+  #[inline]
+  pub fn new<U>(code: i64, info: U, data: Option<T>) -> Self
+  where
+    U: Into<Cow<'static, str>>,
+  {
+    Self {
+      code,
+      info: info.into(),
+      data,
     }
   }
 
@@ -91,6 +105,20 @@ impl<T> ResponseError<T> {
   #[inline]
   pub const fn data_mut(&mut self) -> Option<&mut T> {
     self.data.as_mut()
+  }
+
+  /// Converts `self` into a new `ResponseError`
+  /// with the error data set to `f(T)`.
+  #[inline]
+  pub fn map<F, U>(self, f: F) -> ResponseError<U>
+  where
+    F: Fn(T) -> U,
+  {
+    ResponseError {
+      code: self.code,
+      info: self.info,
+      data: self.data.map(f),
+    }
   }
 
   /// Deserializes the server-defined error data as `U`.
@@ -151,3 +179,61 @@ where
 }
 
 impl<T> Error for ResponseError<T> where T: Debug + Display {}
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_test::Token;
+  use serde_test::assert_tokens;
+
+  use crate::response::ResponseError;
+
+  type Params = (&'static str, &'static str, &'static str);
+
+  #[test]
+  fn test_serde() {
+    let params: Params = ("0x0", "0x00000000", "latest");
+
+    let a: ResponseError<()> = ResponseError::new_const(-666, "foo", None);
+    let b: ResponseError<Params> = ResponseError::new_const(-666, "foo", Some(params));
+
+    let tokens_a: &[Token] = &[
+      Token::Struct {
+        name: "ResponseError",
+        len: 3,
+      },
+      Token::Str("code"),
+      Token::I64(-666),
+      Token::Str("message"),
+      Token::Str("foo"),
+      Token::Str("data"),
+      Token::None,
+      Token::StructEnd,
+    ];
+
+    let tokens_b: &[Token] = &[
+      Token::Struct {
+        name: "ResponseError",
+        len: 3,
+      },
+      Token::Str("code"),
+      Token::I64(-666),
+      Token::Str("message"),
+      Token::Str("foo"),
+      Token::Str("data"),
+      Token::Some,
+      Token::Tuple { len: 3 },
+      Token::BorrowedStr("0x0"),
+      Token::BorrowedStr("0x00000000"),
+      Token::BorrowedStr("latest"),
+      Token::TupleEnd,
+      Token::StructEnd,
+    ];
+
+    assert_tokens(&a, tokens_a);
+    assert_tokens(&b, tokens_b);
+  }
+}

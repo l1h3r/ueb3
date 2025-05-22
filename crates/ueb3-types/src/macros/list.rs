@@ -24,6 +24,12 @@ macro_rules! define_list {
     }
 
     impl $name {
+      #[doc = concat!("Creates a new `", stringify!($name), "`.")]
+      #[inline]
+      pub const fn new() -> Self {
+        Self::from_vec(Vec::new())
+      }
+
       #[doc = concat!("Creates a new `", stringify!($name), "` from a vector of values.")]
       #[inline]
       pub const fn from_vec(inner: Vec<$data>) -> Self {
@@ -37,12 +43,20 @@ macro_rules! define_list {
       }
     }
 
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::fmt::Debug
+    // -------------------------------------------------------------------------
+
     impl ::core::fmt::Debug for $name {
       #[inline]
       fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         ::core::fmt::Debug::fmt(&self.inner, f)
       }
     }
+
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::ops::Deref/DerefMut
+    // -------------------------------------------------------------------------
 
     impl ::core::ops::Deref for $name {
       type Target = Vec<$data>;
@@ -60,7 +74,11 @@ macro_rules! define_list {
       }
     }
 
-    impl ::core::convert::AsRef<$name> for $name {
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::convert::AsRef
+    // -------------------------------------------------------------------------
+
+    impl ::core::convert::AsRef<Self> for $name {
       #[inline]
       fn as_ref(&self) -> &Self {
         self
@@ -81,7 +99,11 @@ macro_rules! define_list {
       }
     }
 
-    impl ::core::convert::AsMut<$name> for $name {
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::convert::AsMut
+    // -------------------------------------------------------------------------
+
+    impl ::core::convert::AsMut<Self> for $name {
       #[inline]
       fn as_mut(&mut self) -> &mut Self {
         self
@@ -102,12 +124,20 @@ macro_rules! define_list {
       }
     }
 
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::borrow::Borrow
+    // -------------------------------------------------------------------------
+
     impl ::core::borrow::Borrow<[$data]> for $name {
       #[inline]
       fn borrow(&self) -> &[$data] {
         self.inner.borrow()
       }
     }
+
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::borrow::BorrowMut
+    // -------------------------------------------------------------------------
 
     impl ::core::borrow::BorrowMut<[$data]> for $name {
       #[inline]
@@ -116,25 +146,34 @@ macro_rules! define_list {
       }
     }
 
-    impl ::core::iter::Extend<$data> for $name {
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::convert::From (<container> -> Self)
+    // -------------------------------------------------------------------------
+
+    impl<const N: usize> ::core::convert::From<[$data; N]> for $name {
       #[inline]
-      fn extend<I>(&mut self, iter: I)
-      where
-        I: ::core::iter::IntoIterator<Item = $data>,
-      {
-        self.inner.extend(iter);
+      fn from(other: [$data; N]) -> Self {
+        Self::from_vec(other.into())
       }
     }
 
-    impl ::core::iter::FromIterator<$data> for $name {
+    impl ::core::convert::From<Vec<$data>> for $name {
       #[inline]
-      fn from_iter<I>(iter: I) -> Self
-      where
-        I: ::core::iter::IntoIterator<Item = $data>,
-      {
-        Self::from_vec(iter.into_iter().collect())
+      fn from(other: Vec<$data>) -> Self {
+        Self::from_vec(other)
       }
     }
+
+    impl ::core::convert::From<Box<[$data]>> for $name {
+      #[inline]
+      fn from(other: Box<[$data]>) -> Self {
+        Self::from_vec(other.into())
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::ops::Index/IndexMut
+    // -------------------------------------------------------------------------
 
     impl<I> ::core::ops::Index<I> for $name
     where
@@ -157,6 +196,10 @@ macro_rules! define_list {
         self.inner.index_mut(index)
       }
     }
+
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::iter::IntoIterator
+    // -------------------------------------------------------------------------
 
     impl ::core::iter::IntoIterator for $name {
       type Item = $data;
@@ -185,6 +228,34 @@ macro_rules! define_list {
       #[inline]
       fn into_iter(self) -> Self::IntoIter {
         self.inner.iter_mut()
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::iter::FromIterator
+    // -------------------------------------------------------------------------
+
+    impl ::core::iter::FromIterator<$data> for $name {
+      #[inline]
+      fn from_iter<I>(iter: I) -> Self
+      where
+        I: ::core::iter::IntoIterator<Item = $data>,
+      {
+        Self::from_vec(iter.into_iter().collect())
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Implementations - ::core::iter::Extend
+    // -------------------------------------------------------------------------
+
+    impl ::core::iter::Extend<$data> for $name {
+      #[inline]
+      fn extend<I>(&mut self, iter: I)
+      where
+        I: ::core::iter::IntoIterator<Item = $data>,
+      {
+        self.inner.extend(iter);
       }
     }
   };

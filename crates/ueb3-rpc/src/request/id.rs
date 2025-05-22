@@ -12,7 +12,7 @@ use std::fmt::Result;
 /// A JSON-RPC 2.0 request/response identifier.
 ///
 /// Note: String and NULL identifiers are **not** supported.
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 #[repr(transparent)]
 #[serde(transparent)]
 pub struct RequestId(u64);
@@ -42,5 +42,29 @@ impl Display for RequestId {
   #[inline]
   fn fmt(&self, f: &mut Formatter<'_>) -> Result {
     write!(f, "{}", self.get())
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_test::Token;
+  use serde_test::assert_tokens;
+
+  use crate::request::RequestId;
+
+  #[test]
+  fn test_serde() {
+    let a: RequestId = RequestId::new(u64::MIN);
+    let b: RequestId = RequestId::new(u64::MAX);
+
+    let tokens_a: &[Token] = &[Token::U64(u64::MIN)];
+    let tokens_b: &[Token] = &[Token::U64(u64::MAX)];
+
+    assert_tokens(&a, tokens_a);
+    assert_tokens(&b, tokens_b);
   }
 }

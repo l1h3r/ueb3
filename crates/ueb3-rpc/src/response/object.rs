@@ -199,3 +199,191 @@ impl Serialize for Response<'_> {
     }
   }
 }
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde::Deserialize;
+  use serde::Serialize;
+  use serde_json::value::RawValue;
+  use serde_test::Token;
+  use serde_test::assert_tokens;
+  use std::borrow::Borrow;
+  use ueb3_utils::traits::Encode as _;
+
+  use crate::request::RequestId;
+  use crate::response::Response;
+  use crate::response::ResponseError;
+  use crate::response::ResponseFailure;
+  use crate::response::ResponseSuccess;
+
+  type Params = (&'static str, &'static str, &'static str);
+
+  #[derive(Clone, Debug, Deserialize, Serialize)]
+  #[repr(transparent)]
+  #[serde(transparent)]
+  struct Wrapper<T>(T);
+
+  impl<T> PartialEq for Wrapper<T>
+  where
+    T: Borrow<RawValue>,
+  {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+      let lhs: &RawValue = self.0.borrow();
+      let rhs: &RawValue = other.0.borrow();
+      lhs.get() == rhs.get()
+    }
+  }
+
+  #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+  #[serde(from = "Response<'a>", into = "Response<'a>")]
+  enum ResponseEq<'a> {
+    Success(#[serde(borrow)] ResponseSuccess<Wrapper<&'a RawValue>>),
+    Failure(#[serde(borrow)] ResponseFailure<Wrapper<&'a RawValue>>),
+  }
+
+  impl<'a> From<ResponseEq<'a>> for Response<'a> {
+    #[inline]
+    fn from(other: ResponseEq<'a>) -> Self {
+      match other {
+        ResponseEq::Success(inner) => Self::Success(inner.map(|item| item.0)),
+        ResponseEq::Failure(inner) => Self::Failure(inner.map(|item| item.0)),
+      }
+    }
+  }
+
+  impl<'a> From<Response<'a>> for ResponseEq<'a> {
+    #[inline]
+    fn from(other: Response<'a>) -> Self {
+      match other {
+        Response::Success(inner) => Self::Success(inner.map(Wrapper)),
+        Response::Failure(inner) => Self::Failure(inner.map(Wrapper)),
+      }
+    }
+  }
+
+  #[test]
+  fn test_serde() {
+    let params: Params = ("0x0", "0x00000000", "latest");
+    let params: Box<RawValue> = params.encode_raw_value().unwrap();
+
+    let request: RequestId = RequestId::new(1);
+
+    let error_c: ResponseError<&RawValue> = ResponseError::new_const(-666, "foo", None);
+    let error_d: ResponseError<&RawValue> = ResponseError::new_const(-666, "foo", Some(&params));
+
+    let content_a: ResponseSuccess<&RawValue> = ResponseSuccess::new(request, RawValue::NULL);
+    let content_b: ResponseSuccess<&RawValue> = ResponseSuccess::new(request, &params);
+    let content_c: ResponseFailure<&RawValue> = ResponseFailure::new(request, error_c);
+    let content_d: ResponseFailure<&RawValue> = ResponseFailure::new(request, error_d);
+
+    let a: Response<'_> = Response::Success(content_a);
+    let b: Response<'_> = Response::Success(content_b);
+    let c: Response<'_> = Response::Failure(content_c);
+    let d: Response<'_> = Response::Failure(content_d);
+
+    let tokens_a: &[Token] = &[
+      Token::Struct {
+        name: "ResponseSuccess",
+        len: 3,
+      },
+      Token::Str("jsonrpc"),
+      Token::BorrowedStr("2.0"),
+      Token::Str("id"),
+      Token::U64(1),
+      Token::Str("result"),
+      Token::Struct {
+        name: "$serde_json::private::RawValue",
+        len: 1,
+      },
+      Token::Str("$serde_json::private::RawValue"),
+      Token::BorrowedStr("null"),
+      Token::StructEnd,
+      Token::StructEnd,
+    ];
+
+    let tokens_b: &[Token] = &[
+      Token::Struct {
+        name: "ResponseSuccess",
+        len: 3,
+      },
+      Token::Str("jsonrpc"),
+      Token::BorrowedStr("2.0"),
+      Token::Str("id"),
+      Token::U64(1),
+      Token::Str("result"),
+      Token::Struct {
+        name: "$serde_json::private::RawValue",
+        len: 1,
+      },
+      Token::Str("$serde_json::private::RawValue"),
+      Token::BorrowedStr(r#"["0x0","0x00000000","latest"]"#),
+      Token::StructEnd,
+      Token::StructEnd,
+    ];
+
+    let tokens_c: &[Token] = &[
+      Token::Struct {
+        name: "ResponseFailure",
+        len: 3,
+      },
+      Token::Str("jsonrpc"),
+      Token::BorrowedStr("2.0"),
+      Token::Str("id"),
+      Token::U64(1),
+      Token::Str("error"),
+      Token::Struct {
+        name: "ResponseError",
+        len: 3,
+      },
+      Token::Str("code"),
+      Token::I64(-666),
+      Token::Str("message"),
+      Token::Str("foo"),
+      Token::Str("data"),
+      Token::None,
+      Token::StructEnd,
+      Token::StructEnd,
+    ];
+
+    let tokens_d: &[Token] = &[
+      Token::Struct {
+        name: "ResponseFailure",
+        len: 3,
+      },
+      Token::Str("jsonrpc"),
+      Token::BorrowedStr("2.0"),
+      Token::Str("id"),
+      Token::U64(1),
+      Token::Str("error"),
+      Token::Struct {
+        name: "ResponseError",
+        len: 3,
+      },
+      Token::Str("code"),
+      Token::I64(-666),
+      Token::Str("message"),
+      Token::Str("foo"),
+      Token::Str("data"),
+      Token::Some,
+      Token::Struct {
+        name: "$serde_json::private::RawValue",
+        len: 1,
+      },
+      Token::Str("$serde_json::private::RawValue"),
+      Token::BorrowedStr(r#"["0x0","0x00000000","latest"]"#),
+      Token::StructEnd,
+      Token::StructEnd,
+      Token::StructEnd,
+    ];
+
+    assert_tokens(&ResponseEq::from(a), tokens_a);
+    assert_tokens(&ResponseEq::from(b), tokens_b);
+    assert_tokens(&ResponseEq::from(c), tokens_c);
+    assert_tokens(&ResponseEq::from(d), tokens_d);
+  }
+}

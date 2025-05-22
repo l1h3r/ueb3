@@ -210,6 +210,8 @@ implement!(u128);
 mod tests {
   use serde::Deserialize;
   use serde::Serialize;
+  use serde_json::Value;
+  use serde_json::from_value;
   use serde_test::Configure as _;
   use serde_test::Token;
   use serde_test::assert_tokens;
@@ -220,16 +222,22 @@ mod tests {
   #[serde(transparent)]
   struct Test<T: Quantity> {
     #[serde(
-      deserialize_with = "Quantity::deserialize",
-      serialize_with = "Quantity::serialize"
+      deserialize_with = "<T as Quantity>::deserialize",
+      serialize_with = "<T as Quantity>::serialize"
     )]
     inner: T,
   }
 
   macro_rules! test {
-    ($name:ident, $type:ty) => {
+    (
+      $serde:ident,
+      $serde_missing_prefix:ident,
+      $serde_missing_digits:ident,
+      $serde_leading_zeroes:ident,
+      $type:ty
+    ) => {
       #[test]
-      fn $name() {
+      fn $serde() {
         const A: $type = 0;
         const B: $type = 65;
         const C: $type = 255;
@@ -250,12 +258,64 @@ mod tests {
         assert_tokens(&b.compact(), &[Token::Bytes(B_BYTES.as_slice())]);
         assert_tokens(&c.compact(), &[Token::Bytes(C_BYTES.as_slice())]);
       }
+
+      #[test]
+      #[should_panic = "missing '0x' prefix"]
+      fn $serde_missing_prefix() {
+        let _: Test<$type> = from_value(Value::String("ff".to_owned())).unwrap();
+      }
+
+      #[test]
+      #[should_panic = "missing digits"]
+      fn $serde_missing_digits() {
+        let _: Test<$type> = from_value(Value::String("0x".to_owned())).unwrap();
+      }
+
+      #[test]
+      #[should_panic = "unexpected leading zero"]
+      fn $serde_leading_zeroes() {
+        let _: Test<$type> = from_value(Value::String("0x0400".to_owned())).unwrap();
+      }
     };
   }
 
-  test!(test_u8, u8);
-  test!(test_u16, u16);
-  test!(test_u32, u32);
-  test!(test_u64, u64);
-  test!(test_u128, u128);
+  test!(
+    test_serde_u8,
+    test_serde_missing_prefix_u8,
+    test_serde_missing_digits_u8,
+    test_serde_leading_zeroes_u8,
+    u8
+  );
+
+  test!(
+    test_serde_u16,
+    test_serde_missing_prefix_u16,
+    test_serde_missing_digits_u16,
+    test_serde_leading_zeroes_u16,
+    u16
+  );
+
+  test!(
+    test_serde_u32,
+    test_serde_missing_prefix_u32,
+    test_serde_missing_digits_u32,
+    test_serde_leading_zeroes_u32,
+    u32
+  );
+
+  test!(
+    test_serde_u64,
+    test_serde_missing_prefix_u64,
+    test_serde_missing_digits_u64,
+    test_serde_leading_zeroes_u64,
+    u64
+  );
+
+  test!(
+    test_serde_u128,
+    test_serde_missing_prefix_u128,
+    test_serde_missing_digits_u128,
+    test_serde_leading_zeroes_u128,
+    u128
+  );
 }

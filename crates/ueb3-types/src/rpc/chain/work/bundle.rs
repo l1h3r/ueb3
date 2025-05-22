@@ -86,13 +86,17 @@ impl Serialize for WorkBundle {
     let (work_hash, seed_hash, target): (H256, H256, H256) =
       (self.work_hash, self.seed_hash, self.target);
 
-    if let Some(value) = self.number.map(U64::from_u64) {
-      (work_hash, seed_hash, target, value).serialize(serializer)
+    if let Some(value) = self.number {
+      (work_hash, seed_hash, target, U64::from_u64(value)).serialize(serializer)
     } else {
       (work_hash, seed_hash, target).serialize(serializer)
     }
   }
 }
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
@@ -105,36 +109,38 @@ mod tests {
 
   #[test]
   fn test_serde() {
-    let mut bundle: WorkBundle = WorkBundle {
+    let a: WorkBundle = WorkBundle {
       work_hash: keccak256("foo"),
       seed_hash: keccak256("bar"),
       target: keccak256("baz"),
       number: None,
     };
 
-    assert_tokens(
-      &bundle.readable(),
-      &[
-        Token::Tuple { len: 3 },
-        Token::Str("0x41b1a0649752af1b28b3dc29a1556eee781e4a4c3a1f7f53f90fa834de098c4d"),
-        Token::Str("0x435cd288e3694b535549c3af56ad805c149f92961bf84a1c647f7d86fc2431b4"),
-        Token::Str("0xf2d05ec5c5729fb559780c70a93ca7b4ee2ca37f64e62fa31046b324f60d9447"),
-        Token::TupleEnd,
-      ],
-    );
+    let b: WorkBundle = WorkBundle {
+      work_hash: keccak256("foo"),
+      seed_hash: keccak256("bar"),
+      target: keccak256("baz"),
+      number: Some(255),
+    };
 
-    bundle.number = Some(255);
+    let tokens_a: &[Token] = &[
+      Token::Tuple { len: 3 },
+      Token::Str("0x41b1a0649752af1b28b3dc29a1556eee781e4a4c3a1f7f53f90fa834de098c4d"),
+      Token::Str("0x435cd288e3694b535549c3af56ad805c149f92961bf84a1c647f7d86fc2431b4"),
+      Token::Str("0xf2d05ec5c5729fb559780c70a93ca7b4ee2ca37f64e62fa31046b324f60d9447"),
+      Token::TupleEnd,
+    ];
 
-    assert_tokens(
-      &bundle.readable(),
-      &[
-        Token::Tuple { len: 4 },
-        Token::Str("0x41b1a0649752af1b28b3dc29a1556eee781e4a4c3a1f7f53f90fa834de098c4d"),
-        Token::Str("0x435cd288e3694b535549c3af56ad805c149f92961bf84a1c647f7d86fc2431b4"),
-        Token::Str("0xf2d05ec5c5729fb559780c70a93ca7b4ee2ca37f64e62fa31046b324f60d9447"),
-        Token::Str("0xff"),
-        Token::TupleEnd,
-      ],
-    );
+    let tokens_b: &[Token] = &[
+      Token::Tuple { len: 4 },
+      Token::Str("0x41b1a0649752af1b28b3dc29a1556eee781e4a4c3a1f7f53f90fa834de098c4d"),
+      Token::Str("0x435cd288e3694b535549c3af56ad805c149f92961bf84a1c647f7d86fc2431b4"),
+      Token::Str("0xf2d05ec5c5729fb559780c70a93ca7b4ee2ca37f64e62fa31046b324f60d9447"),
+      Token::Str("0xff"),
+      Token::TupleEnd,
+    ];
+
+    assert_tokens(&a.readable(), tokens_a);
+    assert_tokens(&b.readable(), tokens_b);
   }
 }

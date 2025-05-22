@@ -24,7 +24,7 @@ pub use self::chain::TransactionHeader;
 pub use self::chain::TransactionId;
 pub use self::chain::TransactionLegacy;
 pub use self::chain::TransactionLog;
-pub use self::chain::TransactionObject;
+pub use self::chain::TransactionPayload;
 pub use self::chain::TransactionReceipt;
 pub use self::chain::TransactionRequest;
 pub use self::chain::TransactionSigner;

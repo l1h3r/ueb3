@@ -67,3 +67,40 @@ impl Serialize for RequestHeader {
     self.serialize_struct(serializer)
   }
 }
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_test::Token;
+  use serde_test::assert_ser_tokens;
+
+  use crate::request::RequestHeader;
+  use crate::request::RequestId;
+
+  #[test]
+  fn test_serde() {
+    let input: RequestHeader = RequestHeader {
+      method: "rpc_modules",
+      id: RequestId::new(1),
+    };
+
+    let tokens: &[Token] = &[
+      Token::Struct {
+        name: "RequestHeader",
+        len: 3,
+      },
+      Token::Str("jsonrpc"),
+      Token::Str("2.0"),
+      Token::Str("method"),
+      Token::Str("rpc_modules"),
+      Token::Str("id"),
+      Token::U64(1),
+      Token::StructEnd,
+    ];
+
+    assert_ser_tokens(&input, tokens);
+  }
+}

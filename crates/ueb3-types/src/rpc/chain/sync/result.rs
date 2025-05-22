@@ -130,6 +130,10 @@ where
   }
 }
 
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
 #[cfg(test)]
 mod tests {
   use serde_test::Configure as _;
@@ -141,24 +145,23 @@ mod tests {
 
   #[test]
   fn test_serde() {
-    let result: SyncResult<()> = SyncResult::Disabled;
+    let a: SyncResult<()> = SyncResult::Enabled(SyncStatus::default());
+    let b: SyncResult<()> = SyncResult::Disabled;
 
-    assert_tokens(&result, &[Token::Bool(false)]);
+    let tokens_a: &[Token] = &[
+      Token::Map { len: None },
+      Token::Str("startingBlock"),
+      Token::Str("0x0"),
+      Token::Str("currentBlock"),
+      Token::Str("0x0"),
+      Token::Str("highestBlock"),
+      Token::Str("0x0"),
+      Token::MapEnd,
+    ];
 
-    let result: SyncResult<()> = SyncResult::Enabled(SyncStatus::default());
+    let tokens_b: &[Token] = &[Token::Bool(false)];
 
-    assert_tokens(
-      &result.readable(),
-      &[
-        Token::Map { len: None },
-        Token::Str("startingBlock"),
-        Token::Str("0x0"),
-        Token::Str("currentBlock"),
-        Token::Str("0x0"),
-        Token::Str("highestBlock"),
-        Token::Str("0x0"),
-        Token::MapEnd,
-      ],
-    );
+    assert_tokens(&a.readable(), tokens_a);
+    assert_tokens(&b.readable(), tokens_b);
   }
 }

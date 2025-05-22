@@ -8,8 +8,8 @@ use ueb3_rpc::Error;
 use ueb3_rpc::ErrorKind;
 use ueb3_rpc::Result;
 use ueb3_rpc::RpcTransport;
-use ueb3_utils::traits::DecodeOwned as _;
-use ueb3_utils::traits::Encode as _;
+use ueb3_utils::traits::DecodeOwned;
+use ueb3_utils::traits::Encode;
 use ureq::Agent;
 use ureq::config::Config;
 use ureq::config::ConfigBuilder;
@@ -103,6 +103,24 @@ impl Ureq {
   }
 
   #[inline]
+  fn post<T, U>(&self, value: T) -> Result<U>
+  where
+    T: Encode,
+    U: DecodeOwned,
+  {
+    self
+      .http
+      .post(&self.node)
+      .header(header::CONTENT_TYPE, "application/json; charset=utf-8")
+      .send(value.encode_vec()?)
+      .map_err(|error| Error::new(ErrorKind::TransportSend, error))?
+      .into_body()
+      .read_to_vec()
+      .map_err(|error| Error::new(ErrorKind::TransportRecv, error))
+      .and_then(|body| U::decode_vec(body).map_err(Into::into))
+  }
+
+  #[inline]
   fn config() -> ConfigBuilder<AgentScope> {
     Config::builder()
       .allow_non_standard_methods(false)
@@ -126,15 +144,11 @@ impl Ureq {
 impl RpcTransport for Ureq {
   #[inline]
   fn call(&self, value: BoxRequest) -> Result<BoxResponse> {
-    self
-      .http
-      .post(&self.node)
-      .header(header::CONTENT_TYPE, "application/json; charset=utf-8")
-      .send(value.encode_vec()?)
-      .map_err(|error| Error::new(ErrorKind::TransportSend, error))?
-      .into_body()
-      .read_to_vec()
-      .map_err(|error| Error::new(ErrorKind::TransportRecv, error))
-      .and_then(|body| BoxResponse::decode_vec(body).map_err(Into::into))
+    self.post(value)
+  }
+
+  #[inline]
+  fn call_many(&self, value: Vec<BoxRequest>) -> Result<Vec<BoxResponse>> {
+    self.post(value)
   }
 }

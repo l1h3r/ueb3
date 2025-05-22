@@ -13,6 +13,9 @@ use std::net::AddrParseError;
 use std::net::IpAddr;
 use std::num::ParseIntError;
 use std::str::FromStr;
+use ueb3_utils::base16::FromHexError;
+
+use crate::eth::H512;
 
 // -----------------------------------------------------------------------------
 // Parse Error
@@ -21,14 +24,12 @@ use std::str::FromStr;
 /// The error type returned from a failed attempt to parse an enode URI.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EnodeParseError {
-  /// The `enode://` scheme is missing.
-  MissingScheme,
+  /// The provided format is invalid.
+  InvalidFormat,
   /// The provided scheme is invalid.
   InvalidScheme,
-  /// The node public key is missing.
-  MissingPKey,
-  /// The host address is missing.
-  MissingHost,
+  /// The provided node identifier is invalid.
+  InvalidName(FromHexError),
   /// The provided host address is invalid.
   InvalidHost(AddrParseError),
   /// The provided port number is invalid.
@@ -39,40 +40,25 @@ impl Display for EnodeParseError {
   #[inline]
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     match self {
-      Self::MissingScheme => f.write_str("scheme missing"),
+      Self::InvalidFormat => f.write_str("invalid URI format"),
       Self::InvalidScheme => f.write_str("invalid scheme"),
-      Self::MissingPKey => f.write_str("public key missing"),
-      Self::MissingHost => f.write_str("host missing"),
-      Self::InvalidHost(inner) => write!(f, "invalid host: {inner}"),
-      Self::InvalidPort(inner) => write!(f, "invalid port: {inner}"),
+      Self::InvalidName(inner) => write!(f, "invalid node identifier: {inner}"),
+      Self::InvalidHost(inner) => write!(f, "invalid host address: {inner}"),
+      Self::InvalidPort(inner) => write!(f, "invalid port number: {inner}"),
     }
   }
 }
 
 impl StdError for EnodeParseError {}
 
-impl From<AddrParseError> for EnodeParseError {
-  #[inline]
-  fn from(other: AddrParseError) -> Self {
-    Self::InvalidHost(other)
-  }
-}
-
-impl From<ParseIntError> for EnodeParseError {
-  #[inline]
-  fn from(other: ParseIntError) -> Self {
-    Self::InvalidPort(other)
-  }
-}
-
 // -----------------------------------------------------------------------------
 // Ethereum Node Identifier
 // -----------------------------------------------------------------------------
 
 /// A URL-style Ethereum node identifier.
-#[derive(Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Enode {
-  name: String,
+  node: H512,
   host: IpAddr,
   tcp: u16,
   udp: u16,
@@ -81,8 +67,8 @@ pub struct Enode {
 impl Enode {
   /// Returns the node public key.
   #[inline]
-  pub fn pkey(&self) -> &str {
-    self.pkey.as_str()
+  pub const fn node(&self) -> &H512 {
+    &self.node
   }
 
   /// Returns the host IP address.
@@ -102,72 +88,93 @@ impl Enode {
   pub const fn udp(&self) -> u16 {
     self.udp
   }
-}
 
-impl Debug for Enode {
   #[inline]
-  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    let Self {
-      pkey,
-      host,
-      tcp,
-      udp,
-    } = self;
+  fn split_str(mut input: &str) -> Option<[&str; 5]> {
+    let mut parts: [&str; 5] = [""; 5];
 
-    if tcp == udp {
-      write!(f, "enode://{pkey}@{host}:{tcp}")
+    (parts[0], input) = input.split_once("://")?;
+    (parts[1], input) = input.split_once('@')?;
+    (parts[2], input) = input.split_once(':')?;
+
+    if let Some((head, tail)) = input.split_once("?discport=") {
+      parts[3] = head;
+      parts[4] = tail;
     } else {
-      write!(f, "enode://{pkey}@{host}:{tcp}?discport={udp}")
+      parts[3] = input;
+      parts[4] = input;
     }
-  }
-}
 
-impl Display for Enode {
-  #[inline]
-  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-    Debug::fmt(self, f)
+    Some(parts)
   }
-}
-
-impl FromStr for Enode {
-  type Err = EnodeParseError;
 
   #[inline]
-  fn from_str(input: &str) -> Result<Self, Self::Err> {
-    let Some((scheme, rest)) = input.split_once("://") else {
-      return Err(EnodeParseError::MissingScheme);
+  fn parse_str(input: &str) -> Result<Self, EnodeParseError> {
+    let Some([scheme, node, host, tcp, udp]) = Self::split_str(input) else {
+      return Err(EnodeParseError::InvalidFormat);
     };
 
     if scheme != "enode" {
       return Err(EnodeParseError::InvalidScheme);
     }
 
-    let Some((pkey, rest)) = rest.split_once('@') else {
-      return Err(EnodeParseError::MissingPKey);
-    };
-
-    let Some((host, rest)) = rest.split_once(':') else {
-      return Err(EnodeParseError::MissingHost);
-    };
-
-    let mut this: Self = Self {
-      pkey: pkey.to_owned(),
-      host: host.parse()?,
-      tcp: 0,
-      udp: 0,
-    };
-
-    if let Some((tcp, udp)) = rest.split_once("?discport=") {
-      this.tcp = tcp.parse()?;
-      this.udp = udp.parse()?;
-    } else {
-      this.tcp = rest.parse()?;
-      this.udp = this.tcp;
-    }
-
-    Ok(this)
+    Ok(Self {
+      node: node.parse().map_err(EnodeParseError::InvalidName)?,
+      host: host.parse().map_err(EnodeParseError::InvalidHost)?,
+      tcp: tcp.parse().map_err(EnodeParseError::InvalidPort)?,
+      udp: udp.parse().map_err(EnodeParseError::InvalidPort)?,
+    })
   }
 }
+
+// -----------------------------------------------------------------------------
+// Implementations - Debug/Display
+// -----------------------------------------------------------------------------
+
+impl Debug for Enode {
+  #[inline]
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    Display::fmt(self, f)
+  }
+}
+
+impl Display for Enode {
+  #[inline]
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    let Self {
+      node,
+      host,
+      tcp,
+      udp,
+    } = self;
+
+    let node: String = format!("{node}");
+    let node: &str = node.trim_start_matches("0x");
+
+    if tcp == udp {
+      write!(f, "enode://{node}@{host}:{tcp}")
+    } else {
+      write!(f, "enode://{node}@{host}:{tcp}?discport={udp}")
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Implementations - FromStr
+// -----------------------------------------------------------------------------
+
+impl FromStr for Enode {
+  type Err = EnodeParseError;
+
+  #[inline]
+  fn from_str(input: &str) -> Result<Self, Self::Err> {
+    Self::parse_str(input)
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Implementations - Serde
+// -----------------------------------------------------------------------------
 
 impl<'de> Deserialize<'de> for Enode {
   #[inline]
@@ -188,46 +195,47 @@ impl Serialize for Enode {
   where
     S: Serializer,
   {
-    serializer.serialize_str(&format!("{self}"))
+    serializer.collect_str(self)
   }
 }
 
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
 #[cfg(test)]
 mod tests {
-  use serde_json::from_str;
-  use serde_json::to_string;
   use std::net::IpAddr;
   use std::net::Ipv4Addr;
 
   use crate::eth::Enode;
+  use crate::eth::H512;
 
   static PKEY: &str = "6f8a80d14311c39f35f516fa664deaaaa13e85b2f7493f37f6144d86991ec012937307647bd3b9a82abe2974e1407241d54947bbb39763a4cac9f77166ad92a0";
 
   #[test]
-  fn test_serde_no_udp() {
-    let text: String = format!(r#""enode://{PKEY}@127.0.0.1:30303""#);
-    let data: Enode = from_str(text.as_str()).unwrap();
-    let json: String = to_string(&data).unwrap();
+  fn test_parse_no_udp() {
+    let node: H512 = PKEY.parse().unwrap();
+    let text: String = format!("enode://{PKEY}@127.0.0.1:30303");
+    let data: Enode = text.parse().unwrap();
 
-    assert_eq!(data.pkey(), PKEY);
+    assert_eq!(data.node(), &node);
     assert_eq!(data.host(), IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
     assert_eq!(data.tcp(), 30303);
     assert_eq!(data.udp(), 30303);
-
-    assert_eq!(json, text);
+    assert_eq!(text, format!("{data}"));
   }
 
   #[test]
-  fn test_serde_udp() {
-    let text: String = format!(r#""enode://{PKEY}@127.0.0.1:30303?discport=30301""#);
-    let data: Enode = from_str(text.as_str()).unwrap();
-    let json: String = to_string(&data).unwrap();
+  fn test_parse_udp() {
+    let node: H512 = PKEY.parse().unwrap();
+    let text: String = format!("enode://{PKEY}@127.0.0.1:30303?discport=30301");
+    let data: Enode = text.parse().unwrap();
 
-    assert_eq!(data.pkey(), PKEY);
+    assert_eq!(data.node(), &node);
     assert_eq!(data.host(), IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
     assert_eq!(data.tcp(), 30303);
     assert_eq!(data.udp(), 30301);
-
-    assert_eq!(json, text);
+    assert_eq!(text, format!("{data}"));
   }
 }

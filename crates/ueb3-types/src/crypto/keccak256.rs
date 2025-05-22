@@ -14,7 +14,7 @@ where
     let mut digest: Keccak = Keccak::v256();
     let mut output: H256 = H256::NULL;
     digest.update(input);
-    digest.finalize(&mut output);
+    digest.finalize(&mut output[..]);
     output
   }
 

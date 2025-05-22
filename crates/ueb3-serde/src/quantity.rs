@@ -29,6 +29,7 @@ pub mod opt {
 
   use serde::Deserialize;
   use serde::Deserializer;
+  use serde::Serialize;
   use serde::Serializer;
   use ueb3_utils::traits::Quantity;
 
@@ -42,7 +43,7 @@ pub mod opt {
     #[derive(Deserialize)]
     #[serde(transparent)]
     struct Value<T: Quantity> {
-      #[serde(deserialize_with = "super::deserialize")]
+      #[serde(deserialize_with = "<T as Quantity>::deserialize")]
       inner: T,
     }
 
@@ -59,8 +60,23 @@ pub mod opt {
     S: Serializer,
     T: Quantity,
   {
+    struct Value<'a, T>(&'a T);
+
+    impl<T> Serialize for Value<'_, T>
+    where
+      T: Quantity,
+    {
+      #[inline]
+      fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+      where
+        S: Serializer,
+      {
+        <T as Quantity>::serialize(self.0, serializer)
+      }
+    }
+
     if let Some(inner) = value {
-      <T as Quantity>::serialize(inner, serializer)
+      serializer.serialize_some(&Value(inner))
     } else {
       serializer.serialize_none()
     }

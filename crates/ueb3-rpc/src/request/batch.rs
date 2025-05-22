@@ -48,7 +48,7 @@ impl RequestBatch {
   ///
   /// This may return `None` if the batch is a value variant.
   #[inline]
-  pub fn as_batch(&self) -> Option<&[BoxRequest]> {
+  pub const fn as_batch(&self) -> Option<&[BoxRequest]> {
     match self {
       Self::Batch(inner) => Some(inner.as_slice()),
       Self::Value(_) => None,
@@ -68,7 +68,7 @@ impl RequestBatch {
 
   /// Returns `self` as a slice of request objects.
   #[inline]
-  pub fn as_slice(&self) -> &[BoxRequest] {
+  pub const fn as_slice(&self) -> &[BoxRequest] {
     match self {
       Self::Batch(inner) => inner.as_slice(),
       Self::Value(inner) => slice::from_ref(inner),
@@ -77,7 +77,7 @@ impl RequestBatch {
 
   /// Returns a mutable reference to the underlying slice of requests.
   #[inline]
-  pub fn as_mut_slice(&mut self) -> &mut [BoxRequest] {
+  pub const fn as_mut_slice(&mut self) -> &mut [BoxRequest] {
     match self {
       Self::Batch(inner) => inner.as_mut_slice(),
       Self::Value(inner) => slice::from_mut(inner),
@@ -155,6 +155,13 @@ impl From<BoxRequest> for RequestBatch {
   #[inline]
   fn from(other: BoxRequest) -> Self {
     Self::Value(other)
+  }
+}
+
+impl<const N: usize> From<[BoxRequest; N]> for RequestBatch {
+  #[inline]
+  fn from(other: [BoxRequest; N]) -> Self {
+    Self::Batch(other.into())
   }
 }
 
@@ -253,5 +260,87 @@ impl Serialize for RequestBatch {
       Self::Batch(inner) => inner.serialize(serializer),
       Self::Value(inner) => inner.serialize(serializer),
     }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_json::value::RawValue;
+  use serde_test::Token;
+  use serde_test::assert_ser_tokens;
+  use ueb3_utils::traits::Encode as _;
+
+  use crate::request::BoxRequest;
+  use crate::request::RequestBatch;
+  use crate::request::RequestId;
+
+  type Params = (&'static str, &'static str, &'static str);
+
+  #[test]
+  fn test_serde() {
+    let params: Params = ("0x0", "0x00000000", "latest");
+    let params: Box<RawValue> = params.encode_raw_value().unwrap();
+
+    let data_1: BoxRequest = BoxRequest::new("rpc_modules", RequestId::new(1), None);
+    let data_2: BoxRequest = BoxRequest::new("rpc_modules", RequestId::new(2), Some(params));
+
+    let a: RequestBatch = RequestBatch::from(data_1.clone());
+    let b: RequestBatch = RequestBatch::from([data_1, data_2]);
+
+    let tokens_a: &[Token] = &[
+      Token::Struct {
+        name: "BoxRequest",
+        len: 3,
+      },
+      Token::Str("jsonrpc"),
+      Token::Str("2.0"),
+      Token::Str("method"),
+      Token::Str("rpc_modules"),
+      Token::Str("id"),
+      Token::U64(1),
+      Token::StructEnd,
+    ];
+
+    let tokens_b: &[Token] = &[
+      Token::Seq { len: Some(2) },
+      Token::Struct {
+        name: "BoxRequest",
+        len: 3,
+      },
+      Token::Str("jsonrpc"),
+      Token::Str("2.0"),
+      Token::Str("method"),
+      Token::Str("rpc_modules"),
+      Token::Str("id"),
+      Token::U64(1),
+      Token::StructEnd,
+      Token::Struct {
+        name: "BoxRequest",
+        len: 4,
+      },
+      Token::Str("jsonrpc"),
+      Token::Str("2.0"),
+      Token::Str("method"),
+      Token::Str("rpc_modules"),
+      Token::Str("id"),
+      Token::U64(2),
+      Token::Str("params"),
+      Token::Struct {
+        name: "$serde_json::private::RawValue",
+        len: 1,
+      },
+      Token::Str("$serde_json::private::RawValue"),
+      Token::Str(r#"["0x0","0x00000000","latest"]"#),
+      Token::StructEnd,
+      Token::StructEnd,
+      Token::SeqEnd,
+    ];
+
+    assert_ser_tokens(&a, tokens_a);
+    assert_ser_tokens(&b, tokens_b);
   }
 }
