@@ -2,6 +2,8 @@
 
 mod chain;
 
+pub mod ots;
+
 // Re-export for convenience when handling arbitrary JSON data.
 pub use serde_json::Value;
 pub use serde_json::value::RawValue;

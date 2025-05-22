@@ -198,6 +198,13 @@ pub struct Block<T: TransactionData> {
   /// [EIP-7685]: https://eips.ethereum.org/EIPS/eip-7685
   #[serde(skip_serializing_if = "Option::is_none")]
   pub requests_hash: Option<H256>,
+  /// The total number of transactions.
+  ///
+  /// Only specified for [otterscan] blocks.
+  ///
+  /// [otterscan]: https://docs.otterscan.io
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub transaction_count: Option<u64>,
 }
 
 impl Block<Transaction> {
@@ -232,6 +239,7 @@ impl Block<Transaction> {
       withdrawals_root: self.withdrawals_root,
       withdrawals: self.withdrawals,
       requests_hash: self.requests_hash,
+      transaction_count: self.transaction_count,
     }
   }
 
@@ -275,6 +283,7 @@ impl<T: TransactionData> Default for Block<T> {
       withdrawals_root: None,
       withdrawals: None,
       requests_hash: None,
+      transaction_count: None,
     }
   }
 }
@@ -313,6 +322,7 @@ where
       .field("withdrawals_root", &self.withdrawals_root.format())
       .field("withdrawals", &self.withdrawals.format())
       .field("requests_hash", &self.requests_hash.format())
+      .field("transaction_count", &self.transaction_count.format())
       .finish()
   }
 }
@@ -397,6 +407,7 @@ mod tests {
         amount: 0x11a33e3760,
       }])),
       requests_hash: None,
+      transaction_count: None,
     };
 
     let tokens_a: &[Token] = &[
