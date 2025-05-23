@@ -19,6 +19,10 @@ name = "filter_transactions"
 path = "examples/filter/transactions.rs"
 
 [[example]]
+name = "namespace_erigon"
+path = "examples/namespace/erigon.rs"
+
+[[example]]
 name = "namespace_eth"
 path = "examples/namespace/eth.rs"
 

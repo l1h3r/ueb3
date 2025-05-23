@@ -2,6 +2,7 @@
 
 mod chain;
 
+pub mod erigon;
 pub mod ots;
 pub mod txpool;
 

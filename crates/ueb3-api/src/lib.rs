@@ -8,6 +8,7 @@ mod stream;
 
 pub use self::future::PendingTransaction;
 
+pub use self::namespace::NsErigon;
 pub use self::namespace::NsNet;
 pub use self::namespace::NsOts;
 pub use self::namespace::NsRpc;
