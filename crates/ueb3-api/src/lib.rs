@@ -11,6 +11,7 @@ pub use self::future::PendingTransaction;
 pub use self::namespace::NsNet;
 pub use self::namespace::NsOts;
 pub use self::namespace::NsRpc;
+pub use self::namespace::NsTxPool;
 pub use self::namespace::NsWeb3;
 
 pub use self::provider::Provider;

@@ -35,6 +35,10 @@ name = "namespace_rpc"
 path = "examples/namespace/rpc.rs"
 
 [[example]]
+name = "namespace_txpool"
+path = "examples/namespace/txpool.rs"
+
+[[example]]
 name = "namespace_web3"
 path = "examples/namespace/web3.rs"
 
