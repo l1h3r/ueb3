@@ -6,6 +6,7 @@ mod macros;
 
 pub mod eip;
 pub mod eth;
+pub mod p2p;
 pub mod rpc;
 
 pub use self::crypto::keccak256;

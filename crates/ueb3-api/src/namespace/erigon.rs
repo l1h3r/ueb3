@@ -5,6 +5,7 @@ use ueb3_types::eth::Address;
 use ueb3_types::eth::H256;
 use ueb3_types::eth::U64;
 use ueb3_types::eth::Wei;
+use ueb3_types::p2p::NodeInfo;
 use ueb3_types::rpc::Block;
 use ueb3_types::rpc::BlockNumber;
 use ueb3_types::rpc::Filter;
@@ -14,7 +15,6 @@ use ueb3_types::rpc::TransactionReceipt;
 use ueb3_types::rpc::erigon;
 
 use crate::provider::Provider;
-use crate::temporary::Unimplemented;
 
 mod private {
   pub trait Sealed {}
@@ -141,10 +141,8 @@ pub trait NsErigon: private::Sealed + Provider {
   #[doc(alias = "erigon_getLogsByHash")]
   #[inline]
   fn logs_by_hash(&self, block: H256) -> Result<Vec<TransactionLog>> {
-    type Transform = Vec<Option<Vec<TransactionLog>>>;
-
     #[inline]
-    fn flatten(value: Transform) -> Vec<TransactionLog> {
+    fn flatten(value: Vec<Option<Vec<TransactionLog>>>) -> Vec<TransactionLog> {
       value.into_iter().flatten().flatten().collect()
     }
 
@@ -158,7 +156,7 @@ pub trait NsErigon: private::Sealed + Provider {
   /// networking granularity.
   #[doc(alias = "erigon_nodeInfo")]
   #[inline]
-  fn node_info(&self) -> Result<Vec<Unimplemented>> {
+  fn node_info(&self) -> Result<Vec<NodeInfo>> {
     self.client().rpc("erigon_nodeInfo", ())
   }
 }

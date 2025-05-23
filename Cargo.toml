@@ -31,7 +31,7 @@ ueb3-ureq = { version = "=0.1", path = "crates/ueb3-ureq", optional = true }
 const-hex = { version = "1.14", default-features = false }
 itoa = { version = "1.0", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive", "std"] }
-serde_json = { version = "1.0", default-features = false, features = ["raw_value", "std"] }
+serde_json = { version = "1.0", default-features = false, features = ["arbitrary_precision", "raw_value", "std"] }
 tiny-keccak = { version = "2.0", default-features = false, features = ["keccak"] }
 uint = { version = "0.10", default-features = false, features = ["std"] }
 

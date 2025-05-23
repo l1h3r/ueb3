@@ -6,6 +6,7 @@ use ueb3::types::eip::eip1898::BlockId;
 use ueb3::types::eth::Address;
 use ueb3::types::eth::H256;
 use ueb3::types::eth::Wei;
+use ueb3::types::p2p::NodeInfo;
 use ueb3::types::rpc::Block;
 use ueb3::types::rpc::BlockNumber;
 use ueb3::types::rpc::erigon::FilterOptions;
@@ -79,6 +80,9 @@ fn main() -> Result<()> {
   let input: H256 = "0x3f07a9c83155594c000642e7d60e8a8a00038d03e9849171a05ed0e2d47acbb3".parse()?;
   let value: Vec<TransactionLog> = transport.logs_by_hash(input)?;
   println!("[erigon_getLogsByHash]: {value:#?}");
+
+  let value: Vec<NodeInfo> = transport.node_info()?;
+  println!("[erigon_nodeInfo]: {value:#?}");
 
   Ok(())
 }
