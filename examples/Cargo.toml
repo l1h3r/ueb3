@@ -35,6 +35,10 @@ name = "namespace_ots"
 path = "examples/namespace/ots.rs"
 
 [[example]]
+name = "namespace_reth"
+path = "examples/namespace/reth.rs"
+
+[[example]]
 name = "namespace_rpc"
 path = "examples/namespace/rpc.rs"
 
