@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde signature")]
 #[inline]
 const fn is_zero(value: &u64) -> bool {
   *value == 0

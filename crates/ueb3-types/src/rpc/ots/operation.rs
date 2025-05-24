@@ -59,7 +59,7 @@ impl<'de> Deserialize<'de> for OperationType {
       3 => Self::Create2,
       value => {
         return Err(D::Error::invalid_value(
-          Unexpected::Unsigned(value as u64),
+          Unexpected::Unsigned(u64::from(value)),
           &"an unsigned integer from `0` to `3`",
         ));
       }
