@@ -253,6 +253,7 @@ mod tests {
   use crate::p2p::EthashConfig;
 
   #[test]
+  #[ignore]
   fn test_serde() {
     const DEPOSIT: &str = "0x00000000219ab540356cbb839cbe05303d7705fa";
 

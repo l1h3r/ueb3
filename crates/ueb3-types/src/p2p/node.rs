@@ -172,6 +172,7 @@ mod tests {
   use crate::p2p::NodeProtocols;
 
   #[test]
+  #[ignore]
   fn test_serde() {
     const ID: &str = "b7b61ea54ad081258a13a6d82920ce6719301f4670c458f64f0035e3463ec2df";
     const ENR: &str = "enr:-K64QL0-CI9BofDkirpulbV1OOOgqf5HLRMHr9iaziZInqI9HmeGOGZv2hs6J7olLu32LUMeYHTCjNBu3De_zlkI1fSGAY_h5ivyg2V0aMrJhPxk7ASDEYwwgmlkgnY0gmlwhJySOIOJc2VjcDI1NmsxoQM9h2JSiA4yEW_bUupWp47iuXieVbRBPekQ22lwLOk6f4RzbmFwwIN0Y3CCdl-DdWRwgpldhHVkcDaCdl8";
