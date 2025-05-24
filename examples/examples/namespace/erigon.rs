@@ -68,7 +68,7 @@ fn main() -> Result<()> {
 
   let input: Address = "0xdAC17F958D2ee523a2206206994597C13D831ec7".parse()?;
   let input: Filter = Filter::new().with_address(input);
-  let f_opt: FilterOptions = FilterOptions::new_log(1000, true);
+  let f_opt: FilterOptions = FilterOptions::new_log(10, true);
   let value: Vec<TransactionLog> = transport.latest_logs(&input, f_opt)?;
   println!("[erigon_getLatestLogs]: {value:#?}");
 
