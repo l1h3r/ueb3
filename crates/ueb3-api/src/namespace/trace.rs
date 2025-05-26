@@ -154,7 +154,10 @@ pub trait NsTrace: private::Sealed + Provider {
   /// for the given transaction in no particular order.
   #[doc(alias = "trace_transactionOpcodeGas")]
   #[inline]
-  fn transaction_opcode_gas(&self, transaction: H256) -> Result<Option<trace::TransactionOpcodeGas>> {
+  fn transaction_opcode_gas(
+    &self,
+    transaction: H256,
+  ) -> Result<Option<trace::TransactionOpcodeGas>> {
     self
       .client()
       .rpc("trace_transactionOpcodeGas", (transaction,))
