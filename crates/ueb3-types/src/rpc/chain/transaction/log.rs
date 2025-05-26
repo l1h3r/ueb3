@@ -34,7 +34,7 @@ pub struct TransactionLog {
   pub address: Address,
   /// Whether the log was removed due to a chain reorganization.
   pub removed: bool,
-  /// An array of 0 to 4 indexed log arguments.
+  /// A list of 0 to 4 indexed log arguments.
   #[serde(with = "serde_topics")]
   pub topics: Vec<H256>,
   /// Additional non-indexed log arguments.

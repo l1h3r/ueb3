@@ -117,7 +117,7 @@ pub struct Block<T: TransactionData> {
   /// [The Merge]: https://ethereum.org/en/roadmap/merge
   #[serde(skip_serializing_if = "Option::is_none")]
   pub total_difficulty: Option<U256>,
-  /// An array of transactions (objects or hashes) included in this block.
+  /// A list of transactions (objects or hashes) included in this block.
   ///
   /// Note: This can be empty in the following additional cases:
   ///
@@ -129,7 +129,7 @@ pub struct Block<T: TransactionData> {
   ///  * Retrieving blocks with `erigon_getHeaderByNumber`
   #[serde(default = "Vec::new")]
   pub transactions: Vec<T>,
-  /// An array of uncle hashes.
+  /// A list of uncle hashes.
   ///
   /// Note: This can be empty in the following additional cases:
   ///

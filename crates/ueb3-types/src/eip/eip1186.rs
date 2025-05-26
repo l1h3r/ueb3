@@ -30,9 +30,9 @@ pub struct AccountProof {
   pub code_hash: H256,
   /// The SHA3 of the storage root.
   pub storage_hash: H256,
-  /// An array of rlp-serialized merkle tree nodes.
+  /// A list of rlp-serialized merkle tree nodes.
   pub account_proof: Vec<Bytes>,
-  /// An array of storage entries.
+  /// A list of storage entries.
   pub storage_proof: Vec<StorageProof>,
 }
 
@@ -48,7 +48,7 @@ pub struct StorageProof {
   pub key: H256,
   /// The storage value.
   pub value: U256,
-  /// An array of rlp-serialized merkle tree nodes.
+  /// A list of rlp-serialized merkle tree nodes.
   #[serde(with = "ueb3_serde::nullable::sequence")]
   pub proof: Vec<Bytes>,
 }

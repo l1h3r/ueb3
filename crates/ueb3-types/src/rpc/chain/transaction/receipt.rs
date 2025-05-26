@@ -55,7 +55,7 @@ pub struct TransactionReceipt {
   ///
   /// [EIP-1559]: https://eips.ethereum.org/EIPS/eip-1559
   pub effective_gas_price: Wei,
-  /// An array of log objects emitted by the transaction.
+  /// A list of log objects emitted by the transaction.
   ///
   /// Note: This can be empty in the following additional cases:
   ///

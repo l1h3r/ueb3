@@ -18,7 +18,7 @@ use crate::eth::Wei;
 // Ethereum Transaction Request
 // -----------------------------------------------------------------------------
 
-/// a transaction request object.
+/// A transaction request object.
 #[derive(Clone, Default, Hash, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TransactionRequest {
