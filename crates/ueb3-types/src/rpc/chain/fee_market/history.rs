@@ -14,7 +14,7 @@ pub struct FeeHistory {
   /// The lowest number block of returned range.
   #[serde(with = "ueb3_serde::quantity")]
   pub oldest_block: u64,
-  /// An array of block base fees per gas.
+  /// A list of block base fees per gas.
   ///
   /// This includes the next block after the newest of the returned range,
   /// because this value can be derived from the newest block. Zeroes are
@@ -22,7 +22,7 @@ pub struct FeeHistory {
   ///
   /// [EIP-1559]: https://eips.ethereum.org/EIPS/eip-1559
   pub base_fee_per_gas: Vec<U256>,
-  /// An array of block base fees per blob gas.
+  /// A list of block base fees per blob gas.
   ///
   /// This includes the next block after the newest of the returned range,
   /// because this value can be derived from the newest block. Zeroes are
@@ -30,11 +30,11 @@ pub struct FeeHistory {
   ///
   /// [EIP-4844]: https://eips.ethereum.org/EIPS/eip-4844
   pub base_fee_per_blob_gas: Vec<U256>,
-  /// An array of block gas used ratios.
+  /// A list of block gas used ratios.
   ///
   /// These are calculated as the ratio of `gasUsed` and `gasLimit`.
   pub gas_used_ratio: Vec<f64>,
-  /// An array of block blob gas used ratios.
+  /// A list of block blob gas used ratios.
   ///
   /// These are calculated as the ratio of `blobGasUsed` and the max blob gas
   /// per block.

@@ -19,7 +19,7 @@ pub struct Filter {
   pub block: FilterBlock,
   /// The contract address or list of addresses to match logs against.
   pub address: FilterSet<Address>,
-  /// An array of 0 to 4 order-dependent log topics.
+  /// An array of order-dependent log topics.
   pub topics: [FilterSet<H256>; 4],
 }
 

@@ -34,7 +34,7 @@ pub struct BlockDetails {
 pub struct BlockTransactions {
   /// The Ethereum block object.
   pub fullblock: Block<Transaction>,
-  /// An array of transaction receipts.
+  /// A list of transaction receipts.
   pub receipts: Vec<TransactionReceipt>,
 }
 
@@ -46,10 +46,10 @@ pub struct BlockTransactions {
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct BlockTransactionSearch {
-  /// An array of transaction objects.
+  /// A list of transaction objects.
   #[serde(rename = "txs")]
   pub transactions: Vec<Transaction>,
-  /// An array of transaction receipts.
+  /// A list of transaction receipts.
   pub receipts: Vec<TaggedReceipt>,
   /// Whether this is the first page of transaction results.
   pub first_page: bool,
