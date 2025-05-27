@@ -4,6 +4,7 @@ mod chain;
 
 pub mod erigon;
 pub mod ots;
+pub mod trace;
 pub mod txpool;
 
 // Re-export for convenience when handling arbitrary JSON data.
