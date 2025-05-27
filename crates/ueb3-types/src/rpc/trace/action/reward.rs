@@ -9,7 +9,7 @@ use crate::eth::U256;
 // -----------------------------------------------------------------------------
 
 /// Trace information for a `reward` trace.
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TraceActionReward {
   /// The receiving address of the block reward.
@@ -25,10 +25,11 @@ pub struct TraceActionReward {
 // -----------------------------------------------------------------------------
 
 /// A reward type identifier.
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum RewardType {
   /// `block` reward type.
+  #[default]
   Block,
   /// `uncle` reward type.
   Uncle,
@@ -55,15 +56,11 @@ mod tests {
   fn test_serde() {
     const SEND: &str = "0x83ac5e41e3dcb60a0836ad62211063bbc5dd4ff8";
 
-    let a: TraceActionReward = TraceActionReward {
-      author: Default::default(),
-      reward_type: RewardType::Uncle,
-      value: Default::default(),
-    };
+    let a: TraceActionReward = TraceActionReward::default();
 
     let b: TraceActionReward = TraceActionReward {
       author: SEND.parse().unwrap(),
-      reward_type: RewardType::Block,
+      reward_type: RewardType::Uncle,
       value: "0x183".parse().unwrap(),
     };
 
@@ -77,7 +74,7 @@ mod tests {
       Token::Str("rewardType"),
       Token::UnitVariant {
         name: "RewardType",
-        variant: "uncle",
+        variant: "block",
       },
       Token::Str("value"),
       Token::Str("0x0"),
@@ -94,7 +91,7 @@ mod tests {
       Token::Str("rewardType"),
       Token::UnitVariant {
         name: "RewardType",
-        variant: "block",
+        variant: "uncle",
       },
       Token::Str("value"),
       Token::Str("0x183"),

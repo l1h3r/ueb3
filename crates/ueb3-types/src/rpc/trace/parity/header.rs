@@ -71,3 +71,70 @@ impl Serialize for TraceHeader {
     self.serialize_struct(serializer)
   }
 }
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_test::Configure as _;
+  use serde_test::Token;
+  use serde_test::assert_tokens;
+
+  use crate::rpc::trace::TraceHeader;
+
+  #[test]
+  fn test_serde() {
+    const B_HASH: &str = "0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add";
+    const T_HASH: &str = "0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3";
+
+    let a: TraceHeader = TraceHeader::default();
+
+    let b: TraceHeader = TraceHeader {
+      block_hash: Some(B_HASH.parse().unwrap()),
+      block_number: Some(3068185),
+      transaction_hash: Some(T_HASH.parse().unwrap()),
+      transaction_position: Some(5),
+    };
+
+    let tokens_a: &[Token] = &[
+      Token::Struct {
+        name: "TraceHeader",
+        len: 4,
+      },
+      Token::Str("blockHash"),
+      Token::None,
+      Token::Str("blockNumber"),
+      Token::None,
+      Token::Str("transactionHash"),
+      Token::None,
+      Token::Str("transactionPosition"),
+      Token::None,
+      Token::StructEnd,
+    ];
+
+    let tokens_b: &[Token] = &[
+      Token::Struct {
+        name: "TraceHeader",
+        len: 4,
+      },
+      Token::Str("blockHash"),
+      Token::Some,
+      Token::Str(B_HASH),
+      Token::Str("blockNumber"),
+      Token::Some,
+      Token::U64(3068185),
+      Token::Str("transactionHash"),
+      Token::Some,
+      Token::Str(T_HASH),
+      Token::Str("transactionPosition"),
+      Token::Some,
+      Token::U64(5),
+      Token::StructEnd,
+    ];
+
+    assert_tokens(&a.readable(), tokens_a);
+    assert_tokens(&b.readable(), tokens_b);
+  }
+}

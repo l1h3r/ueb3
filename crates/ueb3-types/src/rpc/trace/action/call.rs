@@ -10,7 +10,7 @@ use crate::eth::U256;
 // -----------------------------------------------------------------------------
 
 /// Trace information for a `call` trace.
-#[derive(Clone, Debug, Hash, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TraceActionCall {
   /// The address that triggered the call.
@@ -33,10 +33,11 @@ pub struct TraceActionCall {
 // -----------------------------------------------------------------------------
 
 /// A call type identifier.
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub enum CallType {
   /// `call` call type.
+  #[default]
   #[serde(rename = "call")]
   Call,
   /// `callcode` call type.
@@ -68,14 +69,7 @@ mod tests {
     const SEND: &str = "0x83ac5e41e3dcb60a0836ad62211063bbc5dd4ff8";
     const DATA: &str = "0x0000000000000000000000000000000000000000000000000000000000000001";
 
-    let a: TraceActionCall = TraceActionCall {
-      from: Default::default(),
-      call_type: CallType::Call,
-      gas: Default::default(),
-      input: Default::default(),
-      to: Default::default(),
-      value: Default::default(),
-    };
+    let a: TraceActionCall = TraceActionCall::default();
 
     let b: TraceActionCall = TraceActionCall {
       from: SEND.parse().unwrap(),

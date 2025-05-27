@@ -66,14 +66,14 @@ where
     state.serialize_field("traceAddress", &self.trace_address)?;
     state.serialize_field("action", &self.action)?;
 
-    if let Some(ref value) = self.result {
-      state.serialize_field("result", value)?;
+    if self.result.is_some() {
+      state.serialize_field("result", &self.result)?;
     } else {
       state.skip_field("result")?;
     }
 
-    if let Some(ref value) = self.error {
-      state.serialize_field("error", value)?;
+    if self.error.is_some() {
+      state.serialize_field("error", &self.error)?;
     } else {
       state.skip_field("error")?;
     }
@@ -93,5 +93,102 @@ where
     S: Serializer,
   {
     self.serialize_struct(serializer)
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+  use serde_test::Configure as _;
+  use serde_test::Token;
+  use serde_test::assert_tokens;
+
+  use crate::rpc::trace::TracePayload;
+
+  type Data = (u32, u32);
+
+  #[test]
+  fn test_serde() {
+    let a: TracePayload<(), ()> = TracePayload::default();
+
+    let b: TracePayload<Data, Data> = TracePayload {
+      subtraces: 2,
+      trace_address: vec![0, 3, 5],
+      action: (12, 34),
+      result: Some((56, 78)),
+      error: None,
+    };
+
+    let c: TracePayload<(), ()> = TracePayload {
+      error: Some("test".into()),
+      ..TracePayload::default()
+    };
+
+    let tokens_a: &[Token] = &[
+      Token::Struct {
+        name: "TracePayload",
+        len: 3,
+      },
+      Token::Str("subtraces"),
+      Token::U64(0),
+      Token::Str("traceAddress"),
+      Token::Seq { len: Some(0) },
+      Token::SeqEnd,
+      Token::Str("action"),
+      Token::Unit,
+      Token::StructEnd,
+    ];
+
+    let tokens_b: &[Token] = &[
+      Token::Struct {
+        name: "TracePayload",
+        len: 4,
+      },
+      Token::Str("subtraces"),
+      Token::U64(2),
+      Token::Str("traceAddress"),
+      Token::Seq { len: Some(3) },
+      Token::U64(0),
+      Token::U64(3),
+      Token::U64(5),
+      Token::SeqEnd,
+      Token::Str("action"),
+      Token::Tuple { len: 2 },
+      Token::U32(12),
+      Token::U32(34),
+      Token::TupleEnd,
+      Token::Str("result"),
+      Token::Some,
+      Token::Tuple { len: 2 },
+      Token::U32(56),
+      Token::U32(78),
+      Token::TupleEnd,
+      Token::StructEnd,
+    ];
+
+    let tokens_c: &[Token] = &[
+      Token::Struct {
+        name: "TracePayload",
+        len: 4,
+      },
+      Token::Str("subtraces"),
+      Token::U64(0),
+      Token::Str("traceAddress"),
+      Token::Seq { len: Some(0) },
+      Token::SeqEnd,
+      Token::Str("action"),
+      Token::Unit,
+      Token::Str("error"),
+      Token::Some,
+      Token::Str("test"),
+      Token::StructEnd,
+    ];
+
+    assert_tokens(&a.readable(), tokens_a);
+    assert_tokens(&b.readable(), tokens_b);
+    assert_tokens(&c.readable(), tokens_c);
   }
 }
