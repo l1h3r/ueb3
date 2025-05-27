@@ -1,3 +1,11 @@
+//! References:
+//!
+//!  * [erigon](https://docs.erigon.tech/advanced/JSONRPC-daemon)
+//!  * [ots](https://docs.otterscan.io/api-docs/ots-api)
+//!  * [reth](https://github.com/paradigmxyz/reth/blob/main/crates/rpc/rpc-api/src/reth.rs)
+//!  * [trace](https://openethereum.github.io/JSONRPC-trace-module)
+//!  * [txpool](https://geth.ethereum.org/docs/interacting-with-geth/rpc/ns-txpool)
+
 mod erigon;
 mod net;
 mod ots;
