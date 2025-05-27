@@ -79,13 +79,15 @@ fn main() -> Result<()> {
   let value: Option<Vec<ParityTrace>> = transport.transaction(input)?;
   println!("[trace_transaction]: {value:#?}");
 
-  let input: BlockId = "0x2ed119".parse().unwrap();
-  let value: Option<_> = transport.block_opcode_gas(input)?;
-  println!("[trace_blockOpcodeGas]: {value:#?}");
+  if cfg!(feature = "node-reth") {
+    let input: BlockId = "0x2ed119".parse().unwrap();
+    let value: Option<_> = transport.block_opcode_gas(input)?;
+    println!("[trace_blockOpcodeGas]: {value:#?}");
 
-  let input: H256 = "0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3".parse().unwrap();
-  let value: Option<_> = transport.transaction_opcode_gas(input)?;
-  println!("[trace_transactionOpcodeGas]: {value:#?}");
+    let input: H256 = "0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3".parse().unwrap();
+    let value: Option<_> = transport.transaction_opcode_gas(input)?;
+    println!("[trace_transactionOpcodeGas]: {value:#?}");
+  }
 
   Ok(())
 }
