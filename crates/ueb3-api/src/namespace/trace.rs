@@ -95,31 +95,21 @@ pub trait NsTrace: private::Sealed + Provider {
   /// Returns traces created at a given block.
   #[doc(alias = "trace_block")]
   #[inline]
-  fn block(
-    &self,
-    block: BlockId,
-  ) -> Result<Option<Vec<trace::ParityTrace>>> {
+  fn block(&self, block: BlockId) -> Result<Option<Vec<trace::ParityTrace>>> {
     self.client().rpc("trace_block", (block,))
   }
 
   /// Returns traces matching the given filter.
   #[doc(alias = "trace_filter")]
   #[inline]
-  fn filter(
-    &self,
-    request: trace::TraceFilterRequest,
-  ) -> Result<Option<Vec<trace::ParityTrace>>> {
+  fn filter(&self, request: trace::TraceFilterRequest) -> Result<Option<Vec<trace::ParityTrace>>> {
     self.client().rpc("trace_filter", (request,))
   }
 
   /// Returns traces at a given position.
   #[doc(alias = "trace_get")]
   #[inline]
-  fn get(
-    &self,
-    transaction: H256,
-    positions: &[u64],
-  ) -> Result<Option<trace::ParityTrace>> {
+  fn get(&self, transaction: H256, positions: &[u64]) -> Result<Option<trace::ParityTrace>> {
     fn encode(positions: &[u64]) -> Vec<U64> {
       positions.iter().copied().map(U64::from_u64).collect()
     }
@@ -132,10 +122,7 @@ pub trait NsTrace: private::Sealed + Provider {
   /// Returns all traces of a given transaction.
   #[doc(alias = "trace_transaction")]
   #[inline]
-  fn transaction(
-    &self,
-    transaction: H256,
-  ) -> Result<Option<Vec<trace::ParityTrace>>> {
+  fn transaction(&self, transaction: H256) -> Result<Option<Vec<trace::ParityTrace>>> {
     self.client().rpc("trace_transaction", (transaction,))
   }
 
