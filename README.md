@@ -4,9 +4,6 @@ A typed Ethereum JSON-RPC client for Rust.
 
 ueb3 covers the standard `eth`, `net` and `web3` methods, plus the extra namespaces that node clients expose: `trace` (Parity-style traces), `txpool`, Erigon, Reth and Otterscan (`ots`). Requests and responses are plain Rust types, including every transaction type up to EIP-7702, and filters for new blocks, transactions or logs can be consumed as async streams.
 
-> **Status:** unpublished and paused since mid-2025. The client and types work against public mainnet nodes (see the
-> examples). There is one blocking HTTP transport, built on [ureq].
-
 ## Example
 
 ```rust
